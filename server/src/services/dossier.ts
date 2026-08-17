@@ -82,8 +82,16 @@ export function listDocuments(dossierId: string) {
     const v = d.current_version_id
       ? (db.prepare('SELECT id, version, original_name, mime, size, period, uploaded_at FROM document_versions WHERE id = ?').get(d.current_version_id) as any)
       : null;
+    // Motif de la dernière demande de correction / rejet (visible par le client).
+    let reason = '';
+    if (d.status === 'A_CORRIGER' || d.status === 'REJETE') {
+      const r = db.prepare(
+        "SELECT reason FROM admin_reviews WHERE document_id = ? AND action IN ('REQUEST_CORRECTION','REJECT') ORDER BY created_at DESC LIMIT 1",
+      ).get(d.id) as { reason: string } | undefined;
+      reason = r?.reason ?? '';
+    }
     return {
-      id: d.id, typeCode: d.type_code, slotIndex: d.slot_index, status: d.status,
+      id: d.id, typeCode: d.type_code, slotIndex: d.slot_index, status: d.status, reason,
       activeVersion: v ? { id: v.id, version: v.version, originalName: v.original_name, mime: v.mime, size: v.size, period: v.period, uploadedAt: v.uploaded_at } : null,
     };
   });

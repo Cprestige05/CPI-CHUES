@@ -11,11 +11,9 @@ build/
 .env.*
 !.env.example
 
-# Independent backend (server/) — never commit local DB, uploads or sensitive logs
-server/data/*.db
-server/data/*.db-*
-server/data/*.sqlite
-server/data/*.sqlite-*
+# Independent backend (server/) — never commit local DB, dev outbox, uploads or logs
+server/data/*
+!server/data/.gitkeep
 server/storage/documents/*
 !server/storage/documents/.gitkeep
 

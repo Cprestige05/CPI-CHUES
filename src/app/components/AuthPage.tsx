@@ -7,6 +7,9 @@ import {
 } from 'lucide-react';
 import type { AuthUser, UserRole, AppPage } from '../App';
 import { creerDemande } from '../data/enrolement';
+import { useAuth } from '../data/authContext';
+import { ApiError, errorMessage } from '../data/apiClient';
+import RegisterRealScreen from './RegisterRealScreen';
 import cpiLogo from '../../imports/image.png';
 import chuesLogo from '../../imports/chues-logo.png';
 import cpiLogoH from '../../imports/cpi-logo.png';
@@ -76,7 +79,6 @@ const PROFIL_OPTIONS: {
 
 interface Props {
   page: AppPage;
-  onLogin: (user: AuthUser) => void;
   onNavigate: (p: AppPage) => void;
 }
 
@@ -177,9 +179,8 @@ function PrimaryBtn({ children, onClick, type = 'button', fullWidth = true, disa
 }
 
 // ─── SCREEN 1 — Welcome ───────────────────────────────────────────────────────
-function WelcomeScreen({ onNavigate, onLogin, onProfileSelect }: {
+function WelcomeScreen({ onNavigate, onProfileSelect }: {
   onNavigate: (p: AppPage) => void;
-  onLogin: (u: AuthUser) => void;
   onProfileSelect: (p: ProfilType) => void;
 }) {
   const [hovered, setHovered] = useState<'chues' | 'other' | null>(null);
@@ -592,19 +593,26 @@ function WelcomeScreen({ onNavigate, onLogin, onProfileSelect }: {
 }
 
 // ─── SCREEN 2 — Login ─────────────────────────────────────────────────────────
-function LoginScreen({ onNavigate }: { onLogin: (u: AuthUser) => void; onNavigate: (p: AppPage) => void }) {
+function LoginScreen({ onNavigate }: { onNavigate: (p: AppPage) => void }) {
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Authentification simulée supprimée : aucun utilisateur fictif n'est connecté.
-    // Tant que le nouveau backend sécurisé n'est pas installé, la connexion est indisponible.
-    setError(
-      "Le service d'authentification est en cours de configuration. La connexion sera disponible après l'installation du nouveau serveur sécurisé.",
-    );
+    if (loading) return; // anti double-soumission
+    setError('');
+    setLoading(true);
+    try {
+      await login(email.trim().toLowerCase(), password);
+      // Succès : le contexte passe en « authenticated » → l'app affiche l'espace.
+    } catch (err) {
+      setError(err instanceof ApiError && err.status === 401 ? 'E-mail ou mot de passe incorrect.' : errorMessage(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const PHOTO = 'https://images.unsplash.com/photo-1721978536434-3cd55a457672?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1200';
@@ -716,6 +724,13 @@ function LoginScreen({ onNavigate }: { onLogin: (u: AuthUser) => void; onNavigat
               </button>
             </div>
           </form>
+
+          <div style={{ textAlign: 'center', marginTop: '12px' }}>
+            <button type="button" onClick={() => onNavigate('forgot')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--muted-foreground)', padding: 0 }}>
+              Mot de passe oublié ?
+            </button>
+          </div>
 
           {/* Retour sur le site — secondaire, contour bleu CHUES, sous « CONNECTER » */}
           <a href={PUBLIC_SITE_URL}
@@ -1882,16 +1897,11 @@ function ChuesRegisterScreen({ onLogin, onNavigate }: { onLogin: (u: AuthUser) =
 }
 
 // ─── Root router ──────────────────────────────────────────────────────────────
-export default function AuthPage({ page, onLogin, onNavigate }: Props) {
-  const [regProfile, setRegProfile] = useState<ProfilType | null>(null);
+export default function AuthPage({ page, onNavigate }: Props) {
+  const handleProfileSelect = (_p: ProfilType) => onNavigate('register');
 
-  const handleProfileSelect = (p: ProfilType) => {
-    setRegProfile(p);
-    onNavigate('register');
-  };
-
-  if (page === 'chues-register') return <ChuesRegisterScreen onLogin={onLogin} onNavigate={onNavigate} />;
-  if (page === 'register') return <RegisterScreen onLogin={onLogin} onNavigate={onNavigate} initialProfile={regProfile} />;
-  if (page === 'login')    return <LoginScreen    onLogin={onLogin} onNavigate={onNavigate} />;
-  return                          <WelcomeScreen  onLogin={onLogin} onNavigate={onNavigate} onProfileSelect={handleProfileSelect} />;
+  // Inscription réelle (backend) pour « register » et « chues-register ».
+  if (page === 'chues-register' || page === 'register') return <RegisterRealScreen onNavigate={onNavigate} />;
+  if (page === 'login') return <LoginScreen onNavigate={onNavigate} />;
+  return <WelcomeScreen onNavigate={onNavigate} onProfileSelect={handleProfileSelect} />;
 }

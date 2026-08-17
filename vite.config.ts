@@ -29,4 +29,14 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src/app'),
     },
   },
+  server: {
+    proxy: {
+      // Proxifie l'API du NOUVEAU backend indépendant (server/, port 8787) en même origine.
+      // Aucune route '/pb' et aucune référence au port 8090 de l'ancien système.
+      '/api': {
+        target: 'http://127.0.0.1:8787',
+        changeOrigin: true,
+      },
+    },
+  },
 })

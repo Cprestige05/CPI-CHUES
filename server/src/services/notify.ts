@@ -17,6 +17,25 @@ export interface ActivityInput {
   meta?: Record<string, unknown>; // JSON NON sensible (jamais mot de passe/jeton/contenu doc)
 }
 
+/** Liste les notifications d'un utilisateur (plus récentes d'abord). */
+export function listNotifications(userId: string, limit = 50) {
+  return db.prepare(
+    'SELECT id, type, title, body, read, created_at FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT ?',
+  ).all(userId, limit);
+}
+
+/** Nombre de notifications non lues. */
+export function unreadCount(userId: string): number {
+  const r = db.prepare('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND read = 0').get(userId) as { n: number };
+  return r.n;
+}
+
+/** Marque une notification comme lue (uniquement celles de l'utilisateur). */
+export function markRead(userId: string, id: string): boolean {
+  const res = db.prepare('UPDATE notifications SET read = 1 WHERE id = ? AND user_id = ?').run(id, userId);
+  return res.changes > 0;
+}
+
 /** Journalise une activité (sans mot de passe, jeton ni contenu documentaire). */
 export function logActivity(a: ActivityInput): void {
   db.prepare(

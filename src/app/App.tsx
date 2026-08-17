@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AuthPage from './components/AuthPage';
 import AppShell from './components/AppShell';
+import { AuthProvider, useAuth } from './data/authContext';
+import { VerifyEmailScreen, ForgotPasswordScreen, ResetPasswordScreen } from './components/AuthTokenScreens';
 
 export type UserRole = 'user' | 'commercial' | 'admin';
 
@@ -11,50 +13,62 @@ export interface AuthUser {
   memberNumber?: string;
 }
 
-export type AppPage = 'welcome' | 'login' | 'register' | 'chues-register' | 'dashboard';
+export type AppPage =
+  | 'welcome' | 'login' | 'register' | 'chues-register'
+  | 'dashboard' | 'forgot' | 'verify-email' | 'reset-password';
 
-/**
- * Prévisualisation strictement locale (DÉVELOPPEMENT UNIQUEMENT) — permet d'afficher un
- * tableau de bord en état vide sans authentification réelle, le temps que le nouveau
- * backend sécurisé soit installé. Gardée par `import.meta.env.DEV` : totalement inerte
- * dans un build de production. N'injecte AUCUN compte, AUCUN identifiant, AUCUN nom fictif
- * (name vide). Usage : ?devpreview=client | agent | admin
- */
-function devPreviewUser(): AuthUser | null {
-  if (!import.meta.env.DEV) return null;
-  try {
-    const p = new URLSearchParams(window.location.search).get('devpreview');
-    const map: Record<string, UserRole> = { client: 'user', agent: 'commercial', admin: 'admin' };
-    const role = p ? map[p] : undefined;
-    if (role) return { role, name: '' };
-  } catch { /* noop */ }
-  return null;
+function Splash() {
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--background)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'var(--muted-foreground)', fontFamily: 'var(--font-sans)' }}>
+        <span style={{ width: 20, height: 20, border: '2px solid var(--border)', borderTopColor: 'var(--primary)', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+        Chargement de votre espace…
+      </div>
+    </div>
+  );
+}
+
+function AppInner() {
+  const { status, user, logout } = useAuth();
+  const [page, setPage] = useState<AppPage>('welcome');
+  const [tokenFromUrl, setTokenFromUrl] = useState<string>('');
+
+  // Liens e-mail : http://localhost:5173/?verify=TOKEN ou ?reset=TOKEN
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const v = p.get('verify');
+    const r = p.get('reset');
+    if (v) { setTokenFromUrl(v); setPage('verify-email'); }
+    else if (r) { setTokenFromUrl(r); setPage('reset-password'); }
+  }, []);
+
+  const clearUrl = () => window.history.replaceState(null, '', window.location.pathname);
+
+  // Écrans de jetons (accessibles connecté ou non).
+  if (page === 'verify-email') {
+    return <VerifyEmailScreen token={tokenFromUrl} onDone={() => { clearUrl(); setPage('login'); }} />;
+  }
+  if (page === 'reset-password') {
+    return <ResetPasswordScreen token={tokenFromUrl} onDone={() => { clearUrl(); setPage('login'); }} />;
+  }
+
+  if (status === 'loading') return <Splash />;
+
+  if (status === 'authenticated' && user) {
+    return <AppShell user={user} onLogout={() => void logout()} />;
+  }
+
+  if (page === 'forgot') {
+    return <ForgotPasswordScreen onBack={() => setPage('login')} />;
+  }
+
+  return <AuthPage page={page === 'dashboard' ? 'welcome' : page} onNavigate={setPage} />;
 }
 
 export default function App() {
-  const preview = devPreviewUser();
-  const [page, setPage] = useState<AppPage>(preview ? 'dashboard' : 'welcome');
-  const [authUser, setAuthUser] = useState<AuthUser | null>(preview);
-
-  const handleLogin = (user: AuthUser) => {
-    setAuthUser(user);
-    setPage('dashboard');
-  };
-
-  const handleLogout = () => {
-    setAuthUser(null);
-    setPage('welcome');
-  };
-
-  if (page === 'dashboard' && authUser) {
-    return <AppShell user={authUser} onLogout={handleLogout} />;
-  }
-
   return (
-    <AuthPage
-      page={page === 'dashboard' ? 'welcome' : page}
-      onLogin={handleLogin}
-      onNavigate={setPage}
-    />
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
   );
 }

@@ -6,7 +6,8 @@ import {
   Phone, Mail, Banknote, ScrollText, History, Settings, MessageSquare, MapPin,
 } from 'lucide-react';
 import cpiLogo from '../../imports/image.png';
-import type { AuthUser, UserRole } from '../App';
+import type { UserRole } from '../App';
+import type { SessionUser } from '../data/authContext';
 import { ClientProvider } from '../contexts/ClientContext';
 import { NavigationProvider, useNavigate } from '../contexts/NavigationContext';
 import { loadClients } from '../data/clientRegistry';
@@ -20,6 +21,11 @@ import AgentDashboard from './AgentDashboard';
 import AdminDashboard from './AdminDashboard';
 import StatisticsDashboard from './StatisticsDashboard';
 import MonDossierPage from './MonDossierPage';
+import MonDossierReal from './MonDossierReal';
+import AdminDossiersReal from './AdminDossiersReal';
+import ClientDashboardReal from './ClientDashboardReal';
+import NotificationsReal from './NotificationsReal';
+import MonProfilReal from './MonProfilReal';
 import MonChantierPage from './MonChantierPage';
 import MaDemandePage from './MaDemandePage';
 import MonProfilPage from './MonProfilPage';
@@ -27,7 +33,7 @@ import SimulateurPage from './SimulateurPage';
 import NotificationsPage from './NotificationsPage';
 
 interface AppShellProps {
-  user: AuthUser;
+  user: SessionUser;
   onLogout: () => void;
 }
 
@@ -403,6 +409,14 @@ function AppShellInner({ user, onLogout }: AppShellProps) {
 
   const renderDashboard = () => {
     if (activeNav === 'statistiques')  return <StatisticsDashboard user={user} />;
+    // Parcours réel branché sur le backend (dépôt documentaire) pour le client.
+    // Pages client réelles (branchées sur le backend :8787).
+    if (user.role === 'user') {
+      if (activeNav === 'dashboard')                                 return <ClientDashboardReal user={user} />;
+      if (activeNav === 'mon-dossier' || activeNav === 'ma-demande') return <MonDossierReal user={user} />;
+      if (activeNav === 'notifications')                            return <NotificationsReal />;
+      if (activeNav === 'mon-profil')                              return <MonProfilReal user={user} />;
+    }
     if (activeNav === 'ma-demande')    return <MaDemandePage user={user} />;
     if (activeNav === 'mon-dossier')   return <MonDossierPage  user={user} />;
     if (activeNav === 'mon-chantier')  return <MonChantierPage user={user} />;
@@ -412,9 +426,12 @@ function AppShellInner({ user, onLogout }: AppShellProps) {
     if (activeNav === 'mon-profil')    return <MonProfilPage user={user} />;
 
     if (user.role === 'user') {
-      if (activeNav === 'dashboard') return <ClientDashboardHome user={user} />;
       if (activeNav === 'parcelles') return <ReserverParcellePanel user={user} />;
       return <ClientPublicDashboard user={user} />;
+    }
+    // Revue documentaire réelle (backend) : vue principale Agent/Admin.
+    if ((user.role === 'commercial' || user.role === 'admin') && (activeNav === 'dashboard' || activeNav === 'demandes' || activeNav === 'dossiers')) {
+      return <AdminDossiersReal user={user} />;
     }
     if (user.role === 'commercial') return <AgentDashboard user={user} activeNav={activeNav} />;
     if (user.role === 'admin') return <AdminDashboard user={user} activeNav={activeNav} />;
