@@ -1,0 +1,57 @@
+/* =============================================================================
+   pages.css — Responsive layer for in-dashboard pages
+   (SimulateurPage · MaDemandePage)
+
+   These pages render inside AppShell, which is already responsive (Tailwind:
+   sidebar `hidden lg:flex`, mobile drawer, content `p-5 lg:p-7`). This layer
+   only fixes the pages' own internal layout at small widths. No colors, fonts,
+   copy or logic are changed.
+   ========================================================================== */
+
+/* Form fields: 44px touch target + 16px on mobile (prevents iOS focus zoom) */
+.rp-input { min-height: 44px; }
+@media (max-width: 767px) {
+  .rp-input,
+  .rp-input-sm { font-size: 16px !important; }
+}
+
+/* --- SimulateurPage ------------------------------------------------------ */
+/* Allow grid children to shrink below their content's min-content, so the
+   recharts chart / wide cards can never force the track wider than the column
+   (classic "chart overflows CSS grid" fix). Applies at every width. */
+.sim-grid { min-width: 0; }
+.sim-grid > * { min-width: 0; }
+
+/* Sticky params panel would overlap results once the layout is single-column */
+@media (max-width: 900px) {
+  .sim-params { position: static !important; top: auto !important; }
+}
+
+/* Chart/Table tab bar: scroll horizontally instead of overflowing the card
+   when the results column is narrow (mobile scrollable-tabs pattern). */
+.sim-tabbar { overflow-x: auto; scrollbar-width: thin; }
+.sim-tabbar > button { flex-shrink: 0; }
+/* KPI trio (Capital / Intérêts / Coût total) — long amounts need room */
+@media (max-width: 620px) {
+  .sim-kpi-row { grid-template-columns: 1fr 1fr !important; }
+}
+@media (max-width: 420px) {
+  .sim-kpi-row { grid-template-columns: 1fr !important; }
+}
+
+/* --- MaDemandePage ------------------------------------------------------- */
+/* 2-cell summary (Montant / Durée) stacks on very narrow screens */
+@media (max-width: 400px) {
+  .made-summary-2 { grid-template-columns: 1fr !important; }
+}
+
+/* --- SupportPage : canaux de contact (gauche) + FAQ (droite) ------------- */
+.support-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 1080px) {
+  .support-grid { grid-template-columns: 1fr; }
+}

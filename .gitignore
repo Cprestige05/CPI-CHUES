@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Independent backend (server/) — never commit local DB, uploads or sensitive logs
+server/data/*.db
+server/data/*.db-*
+server/data/*.sqlite
+server/data/*.sqlite-*
+server/storage/documents/*
+!server/storage/documents/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Claude Code local session data
+.claude/

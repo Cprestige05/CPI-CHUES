@@ -1,0 +1,279 @@
+/* =============================================================================
+   auth.css — Responsive layer for the CPI × CHUES inscription / financing journey
+   (WelcomeScreen · LoginScreen · RegisterScreen · ChuesRegisterScreen)
+
+   Approach: mobile-first intent, expressed as breakpoint overrides on top of the
+   components' inline (desktop-oriented) styles. No colors, fonts, logos, copy or
+   business logic are changed here — only layout, spacing, wrapping and ergonomics.
+
+   Breakpoint ladder used across the journey:
+     - Mobile compact .......... <= 374px
+     - Mobile standard ......... 375 – 480px
+     - Tablet (portrait) ....... 481 – 767px
+     - Tablet landscape ........ 768 – 1023px
+     - Small laptop ............ 1024 – 1279px
+     - Desktop ................. 1280 – 1599px
+     - Large screen ............ >= 1600px
+   ========================================================================== */
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* --- Root scope: kill horizontal scroll, accessible focus ---------------- */
+.auth-root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+.auth-root *,
+.auth-root *::before,
+.auth-root *::after { box-sizing: border-box; }
+
+.auth-root :focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respect reduced-motion preference (spec requirement) */
+@media (prefers-reduced-motion: reduce) {
+  .auth-root *,
+  .auth-root *::before,
+  .auth-root *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- Form controls: 44px touch target + no iOS auto-zoom ----------------- */
+.auth-input {
+  min-height: 44px;
+}
+@media (max-width: 767px) {
+  /* 16px prevents Safari/iOS from zooming on focus */
+  .auth-input { font-size: 16px !important; }
+}
+
+/* Key action buttons keep a comfortable tap height */
+.auth-cta { min-height: 46px; }
+
+/* =============================================================================
+   Shared header (CHUES × CPI)
+   ========================================================================== */
+@media (max-width: 900px) {
+  .auth-header-values { display: none !important; }
+}
+@media (max-width: 680px) {
+  .auth-header { padding: 0 16px !important; height: 60px !important; }
+  .auth-header-tagline,
+  .auth-header-divider { display: none !important; }
+}
+@media (max-width: 380px) {
+  .auth-header-cpilogo { height: 30px !important; }
+  .auth-header-chueslogo { height: 34px !important; }
+}
+
+/* =============================================================================
+   SCREEN 1 — WelcomeScreen  (.welcome-split = 55fr / 45fr)
+   ========================================================================== */
+@media (min-width: 1200px) {
+  /* Sur grand écran : contenir le split en une carte centrée (évite les grands
+     vides latéraux et l'étirement vertical du plein-écran). */
+  .welcome-split {
+    flex: 0 0 auto !important;
+    max-width: 1280px;
+    width: calc(100% - 80px);
+    margin: 36px auto 48px;
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 24px 70px rgba(20, 0, 70, 0.13);
+    align-self: center;
+  }
+  /* Contenu du héros packé en haut (supprime le grand gap central). */
+  .welcome-visual { justify-content: flex-start !important; }
+  /* Formulaire centré verticalement + horizontalement dans son panneau. */
+  .welcome-form-panel { display: flex !important; align-items: center; }
+  .welcome-form-inner { max-width: 420px !important; margin: 0 auto; }
+}
+@media (max-width: 900px) {
+  .welcome-split { grid-template-columns: 1fr !important; }
+  .welcome-visual {
+    min-height: auto !important;
+    padding: 32px 24px 28px !important;
+  }
+  .welcome-form-panel { padding: 36px 22px !important; }
+  .welcome-form-inner { max-width: 460px !important; margin: 0 auto; }
+}
+@media (max-width: 600px) {
+  .welcome-hero-img { display: none !important; }
+  .welcome-visual { padding: 28px 18px 24px !important; }
+  .welcome-form-panel { padding: 28px 16px !important; }
+}
+
+/* Bottom trust strip */
+@media (max-width: 900px) {
+  .bottom-strip { flex-wrap: wrap; gap: 10px 0; padding: 14px 20px !important; }
+}
+@media (max-width: 600px) {
+  .bottom-strip { justify-content: flex-start !important; }
+  .bottom-strip > div {
+    border-left: none !important;
+    padding: 6px 14px !important;
+    flex: 1 1 45%;
+  }
+}
+@media (max-width: 360px) {
+  .bottom-strip > div { flex: 1 1 100%; }
+}
+
+/* =============================================================================
+   SCREENS 2 & 3 — Login / Register  (.auth-split = 1fr / 1fr)
+   ========================================================================== */
+@media (min-width: 1200px) {
+  /* Contenir Connexion / Inscription en une carte centrée (comme l'accueil) :
+     supprime l'étirement plein-écran et les grands vides verticaux. */
+  .auth-split {
+    min-height: 0 !important;
+    max-width: 1200px;
+    width: calc(100% - 80px);
+    margin: 40px auto !important;
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 24px 70px rgba(20, 0, 70, 0.13);
+  }
+  /* Contenu des panneaux marketing (bleu/bordeaux) centré verticalement. */
+  .auth-split-visual { min-height: 0 !important; justify-content: center !important; gap: 44px; }
+  .auth-form-panel { min-height: 0 !important; }
+}
+@media (max-width: 860px) {
+  .auth-split { grid-template-columns: 1fr !important; }
+  .auth-split-visual {
+    min-height: auto !important;
+    justify-content: flex-start !important;
+    padding: 36px 28px !important;
+  }
+  .auth-form-panel { padding: 36px 24px !important; }
+}
+@media (max-width: 480px) {
+  .auth-split-visual { padding: 28px 18px !important; }
+  .auth-form-panel { padding: 26px 16px !important; }
+}
+
+/* Register — profile picker (3 cards) */
+@media (max-width: 560px) {
+  .reg-profile-grid { grid-template-columns: 1fr !important; }
+}
+/* Register — email / phone pair */
+@media (max-width: 480px) {
+  .reg-2col { grid-template-columns: 1fr !important; }
+}
+
+/* =============================================================================
+   SCREEN 4 — ChuesRegisterScreen  (.chues-grid = 300px / 1fr / 300px)
+   left = intro + mini-simulator ; center = stepper + form ; right = FAQ + help
+   ========================================================================== */
+
+/* Center column: keep the form card comfortable, never over-stretched. */
+@media (min-width: 861px) {
+  .chues-col-center {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+  }
+  .chues-col-center > * {
+    width: 100%;
+    max-width: 720px;
+  }
+}
+@media (min-width: 1600px) {
+  .chues-col-center > * { max-width: 760px; }
+}
+
+/* Small laptop / tablet landscape (861–1200):
+   two columns (compact left + form), support cards reflow BELOW as a row.
+   The right sidebar is relocated, never hidden. */
+@media (min-width: 861px) and (max-width: 1200px) {
+  .chues-grid {
+    grid-template-columns: 240px minmax(0, 1fr) !important;
+    grid-template-areas: "left center" "right right" !important;
+  }
+  .chues-col-left   { grid-area: left; }
+  .chues-col-center { grid-area: center; }
+  .chues-col-right  {
+    grid-area: right;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    align-items: start;
+    gap: 16px !important;
+    overflow: visible !important;
+    padding: 24px 28px !important;
+    background: #f4f6fb;
+  }
+}
+@media (min-width: 861px) and (max-width: 980px) {
+  /* not enough width for 3 support cards side by side */
+  .chues-col-right { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* Tablet portrait & mobile (<= 860): single column, FORM FIRST,
+   then intro + simulator, then FAQ / help. Nothing hidden. */
+@media (max-width: 860px) {
+  .chues-grid {
+    grid-template-columns: 1fr !important;
+    grid-template-areas: "center" "left" "right" !important;
+    overflow: visible !important;
+  }
+  .chues-col-center {
+    grid-area: center;
+    order: 1;
+    overflow: visible !important;
+    padding: 26px 20px !important;
+  }
+  .chues-col-left {
+    grid-area: left;
+    order: 2;
+    min-height: auto !important;
+    /* keep overflow:hidden (inline) so decorative glow orbs stay clipped */
+    padding: 30px 22px !important;
+  }
+  .chues-col-right {
+    grid-area: right;
+    order: 3;
+    overflow: visible !important;
+    padding: 20px 20px 32px !important;
+  }
+  .chues-card { padding: 26px 22px !important; }
+}
+@media (max-width: 480px) {
+  .chues-col-center { padding: 20px 14px !important; }
+  .chues-col-left   { padding: 26px 18px !important; }
+  .chues-col-right  { padding: 16px 14px 28px !important; }
+  .chues-card       { padding: 22px 16px !important; }
+}
+
+/* Stepper: horizontal states stay; long labels collapse to a compact
+   "Étape X sur 3 · <label>" indicator on small screens. */
+.chues-step-indicator { display: none; }
+@media (max-width: 560px) {
+  .chues-step-label { display: none !important; }
+  .chues-step-indicator {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #1400ff;
+    margin-bottom: 16px;
+  }
+  .chues-stepper { margin-bottom: 24px !important; }
+}
+
+/* Step navigation (Retour / Étape suivante): primary full-width on top,
+   Retour underneath — comfortable thumb reach. */
+.chues-nav button { min-height: 46px; }
+@media (max-width: 560px) {
+  .chues-nav {
+    flex-direction: column-reverse !important;
+  }
+  .chues-nav > button { width: 100% !important; justify-content: center !important; }
+}
