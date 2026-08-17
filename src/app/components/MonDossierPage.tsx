@@ -56,37 +56,37 @@ const REQUIS_DOSSIERS: RequisDossier[] = [
     label: "Pièce d'identité valide",
     requirement: "CNI ou Passeport en cours de validité",
     options: ["Carte Nationale d'Identité (CNI)", 'Passeport biométrique'],
-    submittedLabel: 'CNI recto-verso',
+    submittedLabel: '',
     accent: 'var(--primary)',
     accentBg: 'var(--secondary)',
     icon: UserCheck,
-    status: 'accepte',
-    date: '08 juin 2026', format: 'PDF', taille: '2,1 Mo', version: 'V1',
-    agent: 'Mme Thiombane', commentaire: 'Document conforme, validité vérifiée. Merci.',
+    status: 'en-attente',
+    date: '', format: '', taille: '', version: '',
+    agent: '', commentaire: '',
   },
   {
     id: 'revenus', num: 2,
     label: 'Justificatifs de revenus',
     requirement: '3 derniers bulletins de salaire consécutifs (déposés en un seul dossier)',
-    submittedLabel: 'Bulletins de salaire (3 mois)',
+    submittedLabel: '',
     accent: 'var(--success)',
     accentBg: 'rgba(26,107,68,0.08)',
     icon: Banknote,
-    status: 'accepte',
-    date: '10 juin 2026', format: 'PDF', taille: '9,3 Mo', version: 'V1',
-    agent: 'Mme Thiombane',
+    status: 'en-attente',
+    date: '', format: '', taille: '', version: '',
+    agent: '',
   },
   {
     id: 'bancaires', num: 3,
     label: 'Relevés bancaires',
     requirement: '3 derniers relevés de compte consécutifs (déposés en un seul dossier)',
-    submittedLabel: 'Relevés bancaires (3 mois)',
+    submittedLabel: '',
     accent: 'var(--chart-4)',
     accentBg: 'rgba(46,110,196,0.08)',
     icon: CreditCard,
-    status: 'a-remplacer',
-    date: '14 juin 2026', format: 'PDF', taille: '4,1 Mo', version: 'V1',
-    agent: 'Mme Thiombane', commentaire: 'Un ou plusieurs relevés sont illisibles. Veuillez déposer un dossier complet et lisible.',
+    status: 'en-attente',
+    date: '', format: '', taille: '', version: '',
+    agent: '', commentaire: '',
   },
 ];
 
@@ -464,8 +464,8 @@ function HeroCard({ clientName }: { clientName: string }) {
             { Icon: UserCheck,   text: client.conseiller },
             { Icon: Building,    text: client.banque },
             { Icon: CalendarDays,text: client.dateOuverture },
-          ].map(m => (
-            <span key={m.text} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 9px', borderRadius: '99px', background: 'var(--input-background)', fontFamily: 'var(--font-sans)', fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
+          ].filter(m => m.text).map((m, i) => (
+            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 9px', borderRadius: '99px', background: 'var(--input-background)', fontFamily: 'var(--font-sans)', fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
               <m.Icon size={10} style={{ flexShrink: 0 }} />{m.text}
             </span>
           ))}

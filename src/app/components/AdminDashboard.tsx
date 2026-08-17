@@ -273,7 +273,7 @@ export default function AdminDashboard({ user, activeNav }: Props) {
             </div>
             {[
               { l: 'Clients', v: String(rTotal) },
-              { l: 'Comptes pro', v: '2' },
+              { l: 'Comptes pro', v: String(BUILTIN_STAFF.length + loadStaff().length) },
               { l: 'Dossiers actifs', v: String(rEnCours) },
               { l: 'Dernière activité', v: lastActivityDate },
             ].map(s => (
@@ -862,7 +862,7 @@ function SystemeView() {
           ))}
         </div>
         <div style={{ fontSize: '0.75rem', color: A.muted, lineHeight: 1.6 }}>
-          Comptes professionnels intégrés : <strong style={{ color: A.text }}>agent@cpi.sn</strong> (Agent CPI) · <strong style={{ color: A.text }}>admin@cpi.sn</strong> (Administrateur). Les comptes créés depuis « Utilisateurs » s'ajoutent au registre. {docsPublies} document(s) CPI publié(s).
+          Aucun compte professionnel intégré par défaut. Les comptes Agent CPI et Administrateur sont créés depuis « Utilisateurs » (ou fournis par le nouveau backend sécurisé). {docsPublies} document(s) CPI publié(s).
         </div>
       </div>
 

@@ -239,8 +239,8 @@ export default function MonProfilPage({ user }: MonProfilPageProps) {
 
   // Build PROFILE from single source of truth, keep static fields as-is
   const PROFILE = {
-    nom: clientData.name.split(' ').slice(1).join(' ').toUpperCase() || 'NDIAYE',
-    prenom: clientData.name.split(' ')[0] || 'Aïssatou',
+    nom: clientData.name.split(' ').slice(1).join(' ').toUpperCase() || '',
+    prenom: clientData.name.split(' ')[0] || '',
     dateNaissance: '14 mars 1985',
     lieuNaissance: 'Thiès, Sénégal',
     nationalite: 'Sénégalaise',
@@ -274,9 +274,9 @@ export default function MonProfilPage({ user }: MonProfilPageProps) {
     dossierNumber: clientData.ref,
     dateInscription: clientData.adhesionDate,
     progression: clientData.progression,
-    docsDeposes: 6,
-    docsTotal: 8,
-    lastLogin: '22 juillet 2026 · 09:14',
+    docsDeposes: 0,
+    docsTotal: 0,
+    lastLogin: '',
   };
 
   const [editing, setEditing] = useState<string | null>(null);
@@ -468,7 +468,7 @@ export default function MonProfilPage({ user }: MonProfilPageProps) {
             { label: 'Dernière connexion', value: '22 juil. · 09:14', icon: Clock },
             { label: 'Documents déposés', value: `${PROFILE.docsDeposes} / ${PROFILE.docsTotal}`, icon: Shield },
             { label: 'Progression dossier', value: `${PROFILE.progression} %`, icon: TrendingUp },
-            { label: 'Conseillère', value: 'Mme Thiombane', icon: User },
+            { label: 'Conseillère', value: clientData.conseiller || '—', icon: User },
           ].map((s, i, arr) => (
             <div key={s.label} style={{
               display: 'flex', alignItems: 'center', gap: '10px',

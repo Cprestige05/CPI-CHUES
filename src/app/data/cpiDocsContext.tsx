@@ -60,26 +60,7 @@ interface CpiDocsCtx {
 
 const CpiDocsContext = createContext<CpiDocsCtx | null>(null);
 
-// ─── Initial CPI documents (Aïssatou only — other clients start with empty set) ──
-
-const INITIAL_CPI_DOCS_AISSATOU: CpiDoc[] = [
-  { id: 'cpi1', categorie: 'contrats',     nom: 'Contrat de réservation CPI — Réf. CV-2026-04721',  reference: 'CV-2026-04721', version: 'V2', status: 'signe',     visibleClient: true,  signatureRequise: false, dateCreation: '15 juin 2026', datePublication: '15 juin 2026', auteur: 'Mme Thiombane', format: 'PDF', taille: '1,2 Mo' },
-  { id: 'cpi2', categorie: 'contrats',     nom: 'Contrat de vente définitif',                       version: '—',               status: 'brouillon',  visibleClient: false, signatureRequise: false, dateCreation: '—',            auteur: 'Mme Thiombane' },
-  { id: 'cpi3', categorie: 'conventions',  nom: 'Convention de financement CBAO Attijariwafa Bank', version: 'V1', status: 'a-signer',   visibleClient: true,  signatureRequise: true,  dateCreation: '18 juin 2026', datePublication: '18 juin 2026', auteur: 'Mme Thiombane', format: 'PDF', taille: '0,9 Mo' },
-  { id: 'cpi4', categorie: 'bancaires',    nom: 'Offre de prêt CBAO — Conditions personnalisées',   version: 'V1', status: 'disponible', visibleClient: true,  signatureRequise: false, dateCreation: '20 juin 2026', datePublication: '20 juin 2026', auteur: 'Mme Thiombane', format: 'PDF', taille: '0,7 Mo' },
-  { id: 'cpi5', categorie: 'bancaires',    nom: 'Fiche conditions de prêt CBAO',                    version: 'V1', status: 'disponible', visibleClient: true,  signatureRequise: false, dateCreation: '20 juin 2026', datePublication: '20 juin 2026', auteur: 'Mme Thiombane', format: 'PDF', taille: '0,5 Mo' },
-  { id: 'cpi6', categorie: 'courriers',    nom: "Accusé de réception du dossier",                   version: 'V1', status: 'disponible', visibleClient: true,  signatureRequise: false, dateCreation: '05 juin 2026', datePublication: '05 juin 2026', auteur: 'Mme Thiombane', format: 'PDF', taille: '0,3 Mo' },
-  { id: 'cpi7', categorie: 'courriers',    nom: 'Courrier de confirmation de réservation',          version: 'V1', status: 'disponible', visibleClient: true,  signatureRequise: false, dateCreation: '10 juin 2026', datePublication: '10 juin 2026', auteur: 'Mme Thiombane', format: 'PDF', taille: '0,4 Mo' },
-  { id: 'cpi8', categorie: 'pv',           nom: 'PV de réservation — Villa R+1, Ngolfagnick',       version: 'V1', status: 'signe',      visibleClient: true,  signatureRequise: false, dateCreation: '10 juin 2026', datePublication: '10 juin 2026', auteur: 'Mme Thiombane', format: 'PDF', taille: '0,8 Mo' },
-  { id: 'cpi9', categorie: 'pv',           nom: 'PV de réception des travaux',                      version: '—',  status: 'brouillon',  visibleClient: false, signatureRequise: false, dateCreation: '—',            auteur: 'Mme Thiombane' },
-  { id: 'cpi10',categorie: 'autorisations',nom: 'Autorisation de prélèvement sur salaire',          version: 'V1', status: 'a-signer',   visibleClient: true,  signatureRequise: true,  dateCreation: '20 juin 2026', datePublication: '20 juin 2026', auteur: 'Mme Thiombane', format: 'PDF', taille: '0,3 Mo' },
-  { id: 'cpi11',categorie: 'autorisations',nom: 'Autorisation de construire',                       version: 'V1', status: 'disponible', visibleClient: true,  signatureRequise: false, dateCreation: '08 juin 2026', datePublication: '08 juin 2026', auteur: 'Mme Thiombane', format: 'PDF', taille: '0,5 Mo' },
-];
-
-const INITIAL_CPI_DOCS_MAMADOU: CpiDoc[] = [
-  { id: 'cpi-m1', categorie: 'contrats', nom: 'Contrat de réservation — Villa F3', version: 'V1', status: 'signe', visibleClient: true, signatureRequise: false, dateCreation: '25 mai 2026', datePublication: '25 mai 2026', auteur: 'I. Fall', format: 'PDF', taille: '1,0 Mo' },
-  { id: 'cpi-m2', categorie: 'courriers', nom: "Accusé de réception du dossier", version: 'V1', status: 'disponible', visibleClient: true, signatureRequise: false, dateCreation: '21 mai 2026', datePublication: '21 mai 2026', auteur: 'I. Fall', format: 'PDF', taille: '0,2 Mo' },
-];
+// ─── Initial CPI documents ──────────────────────────────────────────────────────
 
 // Vidé : plus de données démo. Les documents CPI se créent via les vrais dossiers.
 const INITIAL_DOCS_BY_CLIENT: Record<string, CpiDoc[]> = {};

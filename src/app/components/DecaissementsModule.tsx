@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Banknote, CheckCircle2, Clock, AlertCircle, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
-import { CLIENT_AISSATOU, getDecaissementTranches } from '../data/demoStore';
 
 type TrancheStatus = 'valide' | 'en-cours' | 'en-attente' | 'bloque';
 
@@ -31,27 +30,9 @@ const TRANCHE_STATUS_CFG: Record<TrancheStatus, { label: string; color: string; 
   'bloque':    { label: 'Bloqué',      color: '#C0392B',           bg: 'rgba(192,57,43,0.08)',   icon: AlertCircle  },
 };
 
-const INITIAL_DOSSIERS: DossierDecaissement[] = [
-  {
-    id: 'd1',
-    client: CLIENT_AISSATOU.name,
-    ref: CLIENT_AISSATOU.ref,
-    project: `${CLIENT_AISSATOU.projectNom} — ${CLIENT_AISSATOU.adresse}`,
-    montantTotal: '18 500 000',
-    banque: CLIENT_AISSATOU.banque,
-    tranches: getDecaissementTranches(),
-  },
-  {
-    id: 'd2', client: 'Mamadou Diallo', ref: 'CPI-2026-04698', project: 'Villa F3 — Thiès Nord',
-    montantTotal: '12 500 000', banque: 'CBAO Attijariwafa Bank',
-    tranches: [
-      { num: 1, label: 'Démarrage',  pctMontant: 35, montant: '4 375 000',  status: 'en-cours',  date: '', comment: '' },
-      { num: 2, label: 'Gros œuvre', pctMontant: 30, montant: '3 750 000',  status: 'en-attente',date: '', comment: '' },
-      { num: 3, label: 'Second œuvre',pctMontant: 30, montant: '3 750 000', status: 'en-attente',date: '', comment: '' },
-      { num: 4, label: 'Livraison',  pctMontant: 5,  montant: '625 000',    status: 'en-attente',date: '', comment: '' },
-    ],
-  },
-];
+// Aucune donnée fictive : les dossiers de décaissement se remplissent via les
+// vrais dossiers clients.
+const INITIAL_DOSSIERS: DossierDecaissement[] = [];
 
 export default function DecaissementsModule() {
   const [dossiers, setDossiers] = useState<DossierDecaissement[]>(INITIAL_DOSSIERS);
@@ -97,10 +78,10 @@ export default function DecaissementsModule() {
       {/* Summary strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
         {[
-          { label: 'Total à décaisser', value: '27 500 000 FCFA', color: 'var(--primary)' },
-          { label: 'Décaissé',          value: '5 250 000 FCFA',  color: 'var(--success)' },
-          { label: 'En cours',          value: '8 125 000 FCFA',  color: '#C8921A'        },
-          { label: 'En attente',        value: '14 125 000 FCFA', color: 'var(--muted-foreground)' },
+          { label: 'Total à décaisser', value: '0 FCFA', color: 'var(--primary)' },
+          { label: 'Décaissé',          value: '0 FCFA', color: 'var(--success)' },
+          { label: 'En cours',          value: '0 FCFA', color: '#C8921A'        },
+          { label: 'En attente',        value: '0 FCFA', color: 'var(--muted-foreground)' },
         ].map(s => (
           <div key={s.label} style={{ background: 'var(--card)', border: '1px solid var(--border)', padding: '14px 16px' }}>
             <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.75rem', color: 'var(--muted-foreground)', marginBottom: '4px' }}>{s.label}</div>
@@ -182,6 +163,12 @@ export default function DecaissementsModule() {
           </div>
         );
       })}
+
+      {dossiers.length === 0 && (
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', padding: '32px', textAlign: 'center', fontFamily: 'var(--font-sans)', fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+          Aucun dossier de décaissement pour le moment.
+        </div>
+      )}
 
       {/* Comment modal */}
       {commentModal && (

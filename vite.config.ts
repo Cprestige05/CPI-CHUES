@@ -29,15 +29,4 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src/app'),
     },
   },
-  server: {
-    proxy: {
-      // Proxifie les appels PocketBase (site 3000 / :8090) pour éviter les soucis CORS.
-      // Le client PB de l'app 5173 pointe sur '/pb' (voir src/app/data/pbClient.ts).
-      '/pb': {
-        target: 'http://127.0.0.1:8090',
-        changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/pb/, ''),
-      },
-    },
-  },
 })

@@ -73,11 +73,8 @@ export interface StaffAccount {
   createdAt?: string;
 }
 
-/** Comptes intégrés (toujours présents). Mot de passe libre ≥ 4 caractères. */
-export const BUILTIN_STAFF: StaffAccount[] = [
-  { email: 'agent@cpi.sn', name: 'Agent CPI',          role: 'commercial', password: '' },
-  { email: 'admin@cpi.sn', name: 'Administrateur CPI', role: 'admin',     password: '' },
-];
+/** Comptes intégrés — vidé : le personnel réel est enregistré par l'administrateur. */
+export const BUILTIN_STAFF: StaffAccount[] = [];
 
 const STAFF_KEY = 'cpi_staff_registry_v1';
 

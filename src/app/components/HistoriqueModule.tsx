@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { CheckCircle2, FileText, Bell, Camera, Banknote, MessageSquare, Upload, Send, AlertCircle, Filter } from 'lucide-react';
-import { HISTORIQUE_AISSATOU } from '../data/demoStore';
 
 type ActionType = 'validation' | 'document' | 'notification' | 'photo' | 'decaissement' | 'commentaire' | 'depot' | 'refus';
 
@@ -26,21 +25,9 @@ const TYPE_CFG: Record<ActionType, { icon: React.ComponentType<{ size?: number }
   refus:         { icon: AlertCircle,   color: '#C0392B',                  bg: 'rgba(192,57,43,0.08)'    },
 };
 
-// Non-Aïssatou entries kept inline; Aïssatou entries come from the central store.
-const OTHER_ENTRIES: HistoryEntry[] = [
-  { id: 'h6',  date: '16 juin 2026', heure: '09:48', utilisateur: 'I. Fall', role: 'Agent CPI', action: 'Justificatifs de revenus validés',  type: 'validation',   cible: 'Mamadou Diallo'   },
-  { id: 'h7',  date: '16 juin 2026', heure: '11:20', utilisateur: 'I. Fall', role: 'Agent CPI', action: 'Photo chantier ajoutée (Villa F3)', type: 'photo',        cible: 'Villa F3 — Thiès' },
-  { id: 'h11', date: '12 juin 2026', heure: '11:00', utilisateur: 'Mme Thiombane', role: 'Agent CPI', action: 'Notification SMS envoyée',    type: 'notification', cible: 'Fatou Mbaye'      },
-];
-
-const ENTRIES: HistoryEntry[] = [
-  ...HISTORIQUE_AISSATOU,
-  ...OTHER_ENTRIES,
-].sort((a, b) => {
-  const dateA = a.date + ' ' + a.heure;
-  const dateB = b.date + ' ' + b.heure;
-  return dateB.localeCompare(dateA);
-});
+// Aucune donnée fictive : l'historique se remplit via les actions réelles
+// enregistrées sur la plateforme.
+const ENTRIES: HistoryEntry[] = [];
 
 const ALL_TYPES: (ActionType | 'all')[] = ['all', 'validation', 'document', 'notification', 'photo', 'decaissement', 'commentaire', 'depot', 'refus'];
 const TYPE_LABELS: Record<ActionType | 'all', string> = {

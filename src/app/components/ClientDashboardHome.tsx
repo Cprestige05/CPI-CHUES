@@ -17,13 +17,10 @@ import {
 
 interface Props { user: AuthUser; }
 
-const ACTIVITIES = [
-  { Icon: CheckCircle,   tone: 'success', date: '22 juil. 2026', hour: '09:14', text: 'Paiement enregistré — Échéance juillet 2026' },
-  { Icon: FileText,      tone: 'primary', date: '19 juil. 2026', hour: '14:30', text: 'Document validé — Relevé bancaire mois 6'   },
-  { Icon: Calendar,      tone: 'accent',  date: '15 juil. 2026', hour: '11:00', text: 'Rendez-vous confirmé — Mme Thiombane'        },
-  { Icon: Download,      tone: 'primary', date: '10 juil. 2026', hour: '08:45', text: 'Nouveau document disponible — Contrat de réservation' },
-  { Icon: MessageSquare, tone: 'muted',   date: '05 juil. 2026', hour: '16:22', text: 'Nouveau message CPI — Mise à jour dossier'   },
-];
+// Flux d'activité du client — vide par défaut (aucune activité fictive).
+// Sera alimenté par les activités réelles du dossier (backend à venir).
+type Activity = { Icon: any; tone: string; date: string; hour: string; text: string };
+const ACTIVITIES: Activity[] = [];
 
 const TONE: Record<string, string> = {
   success: 'var(--success)', primary: 'var(--primary)',
@@ -34,12 +31,13 @@ const TONE_BG: Record<string, string> = {
   accent: 'rgba(200,146,26,0.1)', muted: 'var(--muted)',
 };
 
-// Phase 1 acquisition journey steps
+// Étapes du parcours d'acquisition — état vide par défaut (aucune date fictive).
+// Les statuts/dates réels seront alimentés par le dossier du client (backend à venir).
 const JOURNEY = [
-  { id: 1, label: 'Dossier soumis',     sub: '03 juin 2026',       done: true  },
-  { id: 2, label: 'Validation CPI',     sub: '18 juin 2026',       done: true  },
-  { id: 3, label: 'Accord bancaire',    sub: 'En cours',    done: false, active: true },
-  { id: 4, label: 'Acquisition terrain',sub: 'Prévu · sept. 2026', done: false },
+  { id: 1, label: 'Dossier soumis',      sub: '—', done: false, active: false },
+  { id: 2, label: 'Validation CPI',      sub: '—', done: false, active: false },
+  { id: 3, label: 'Accord bancaire',     sub: '—', done: false, active: false },
+  { id: 4, label: 'Acquisition terrain', sub: '—', done: false, active: false },
 ];
 
 const fmt  = (n: number) => Math.round(n).toLocaleString('fr-FR') + ' FCFA';
@@ -63,10 +61,13 @@ export default function ClientDashboardHome({ user }: Props) {
   const animPaye     = useCountUp(moisPayes, 900);
   const animMontPaye = useCountUp(montantPaye, 1100);
   const animRestants = useCountUp(moisRestants, 950);
-  const progression  = Math.round((moisPayes / dureeTotal) * 100);
+  const progression  = dureeTotal > 0 ? Math.round((moisPayes / dureeTotal) * 100) : 0;
 
-  const endDate = new Date(Date.now() + moisRestants * 30 * 86400000)
-    .toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  // Date de fin estimée — « — » tant qu'aucun financement réel n'existe (état vide).
+  const endDate = dureeTotal > 0
+    ? new Date(Date.now() + moisRestants * 30 * 86400000)
+        .toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+    : '—';
 
   const alertColor = alerteBadge === 'danger' ? 'var(--destructive)' : alerteBadge === 'warning' ? 'var(--accent)' : 'var(--success)';
   const alertBg    = alerteBadge === 'danger' ? 'rgba(192,57,43,0.1)' : alerteBadge === 'warning' ? 'rgba(200,146,26,0.1)' : 'rgba(26,107,68,0.1)';
@@ -133,15 +134,17 @@ export default function ClientDashboardHome({ user }: Props) {
 
             {/* Left: project identity */}
             <div style={{ flex: 1, minWidth: 240 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: 'var(--font-sans)', fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>
-                  Phase 1 · Acquisition terrain
-                </span>
-                <StatusBadge variant="success" dot>En cours</StatusBadge>
-              </div>
+              {client.projectNom && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+                  <span style={{ fontFamily: 'var(--font-sans)', fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>
+                    Suivi du dossier
+                  </span>
+                  <StatusBadge variant="success" dot>En cours</StatusBadge>
+                </div>
+              )}
 
               <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(1.125rem,2vw,1.5rem)', fontWeight: 800, color: '#fff', margin: '0 0 6px', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-                {client.projectNom}
+                {client.projectNom || 'Aucun dossier en cours'}
               </h2>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
@@ -155,8 +158,8 @@ export default function ClientDashboardHome({ user }: Props) {
               </div>
 
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 20 }}>
-                {[client.ref, client.conseiller, client.banque].map(chip => (
-                  <span key={chip} style={{
+                {[client.ref, client.conseiller, client.banque].filter(Boolean).map((chip, i) => (
+                  <span key={i} style={{
                     fontFamily: 'var(--font-sans)', fontSize: '0.75rem', fontWeight: 600,
                     color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.1)',
                     border: '1px solid rgba(255,255,255,0.12)',
@@ -244,10 +247,10 @@ export default function ClientDashboardHome({ user }: Props) {
           padding: '0 28px',
         }}>
           {[
-            { label: 'Montant financé',    value: '25 000 000 FCFA' },
-            { label: 'Échéance mensuelle', value: '208 400 FCFA'     },
-            { label: 'Mois payés',         value: `14 / 180`         },
-            { label: 'Fin estimée',        value: endDate            },
+            { label: 'Montant financé',    value: fmt(montantFinance) },
+            { label: 'Échéance mensuelle', value: fmt(echeanceMensuelle) },
+            { label: 'Mois payés',         value: `${moisPayes} / ${dureeTotal}` },
+            { label: 'Fin estimée',        value: dureeTotal > 0 ? endDate : '—' },
           ].map((s, i, arr) => (
             <div key={s.label} style={{
               padding: '14px 0',
@@ -335,11 +338,15 @@ export default function ClientDashboardHome({ user }: Props) {
         <SmartCard padding="0">
           <div style={{ padding: '18px 22px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <CardHeader icon={<TrendingUp size={16} />} iconBg="rgba(200,146,26,0.10)" iconColor="var(--accent)" title="Dernières activités" />
-            <StatusBadge variant="muted" size="sm">5 récentes</StatusBadge>
+            <StatusBadge variant="muted" size="sm">{ACTIVITIES.length} récente{ACTIVITIES.length > 1 ? 's' : ''}</StatusBadge>
           </div>
           <CardDivider />
           <div style={{ padding: '20px 22px' }}>
-            {ACTIVITIES.map((item, i) => (
+            {ACTIVITIES.length === 0 ? (
+              <div style={{ fontFamily: 'var(--font-sans)', fontSize: '0.8125rem', color: 'var(--muted-foreground)' }}>
+                Aucune activité récente.
+              </div>
+            ) : ACTIVITIES.map((item, i) => (
               <TimelineItem key={i}
                 icon={<item.Icon size={14} />}
                 iconColor={TONE[item.tone]} iconBg={TONE_BG[item.tone]}

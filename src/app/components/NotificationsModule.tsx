@@ -31,12 +31,8 @@ const TEMPLATES = [
   'Un décaissement a été effectué. Consultez le suivi de votre chantier.',
 ];
 
-const INITIAL_SENT: SentNotif[] = [
-  { id: 'n1', destinataire: 'Aïssatou Ndiaye', message: 'Votre dossier a été mis à jour. Veuillez vous connecter pour consulter les détails.', type: 'notification', date: '18 juin 2026', heure: '14:32', lu: true },
-  { id: 'n2', destinataire: 'Mamadou Diallo',  message: 'Action requise : un document doit être remplacé dans votre dossier.', type: 'notification', date: '17 juin 2026', heure: '10:15', lu: false },
-  { id: 'n3', destinataire: 'Fatou Mbaye',     message: 'Un décaissement a été effectué. Consultez le suivi de votre chantier.', type: 'email', date: '16 juin 2026', heure: '09:48', lu: true },
-  { id: 'n4', destinataire: 'Tous les clients', message: 'Maintenance planifiée ce weekend — la plateforme sera indisponible samedi de 2h à 6h.', type: 'sms', date: '14 juin 2026', heure: '16:00', lu: true },
-];
+// Aucune donnée fictive : l'historique des envois se remplit via les vraies notifications.
+const INITIAL_SENT: SentNotif[] = [];
 
 export default function NotificationsModule() {
   const [sent, setSent] = useState<SentNotif[]>(INITIAL_SENT);
@@ -180,6 +176,11 @@ export default function NotificationsModule() {
                   </td>
                 </tr>
               ))}
+              {sent.length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ padding: '32px', textAlign: 'center', fontFamily: 'var(--font-sans)', fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>Aucune notification envoyée pour le moment.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

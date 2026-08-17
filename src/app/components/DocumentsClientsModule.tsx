@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, Download, CheckCircle2, XCircle, AlertCircle, MessageSquare, ChevronDown, ChevronUp, FileText, Clock, RefreshCw } from 'lucide-react';
 import { useDocState } from '../data/docStateContext';
-import { CLIENT_AISSATOU } from '../data/demoStore';
 import { useClientContext } from '../contexts/ClientContext';
 
 type DocStatus = 'accepte' | 'en-analyse' | 'a-remplacer' | 'refuse' | 'manquant';
@@ -46,37 +45,12 @@ function toModuleStatus(s: StoreDocStatus): DocStatus {
   return 'manquant';
 }
 
-// Aïssatou's additional (non-required) docs — kept local
-const AISSATOU_EXTRA_DOCS: ClientDoc[] = [
-  { id: 'd4', label: 'Plan de masse',          file: '—', date: '—', size: '—', status: 'manquant' },
-  { id: 'd5', label: 'Devis de construction',  file: '—', date: '—', size: '—', status: 'manquant' },
-];
+// Aucune donnée fictive : les dossiers des autres clients se remplissent via
+// les vraies inscriptions.
+const OTHER_CLIENTS: ClientEntry[] = [];
 
-const OTHER_CLIENTS: ClientEntry[] = [
-  {
-    id: 'c-mamadou', name: 'Mamadou Diallo', ref: 'CPI-2026-04698', project: 'Villa F3 — Thiès Nord',
-    docs: [
-      { id: 'd1', label: "Pièce d'identité",       file: 'Passeport.pdf',            date: '05 juin 2026', size: '1.8 Mo', status: 'accepte'    },
-      { id: 'd2', label: 'Justificatifs de revenus', file: 'Bulletins_x3.pdf',         date: '05 juin 2026', size: '3.9 Mo', status: 'en-analyse' },
-      { id: 'd3', label: 'Relevés bancaires',       file: 'Releves_x3.pdf',           date: '05 juin 2026', size: '2.8 Mo', status: 'en-analyse' },
-      { id: 'd4', label: 'Permis de construire',    file: '—',                        date: '—',            size: '—',      status: 'manquant'   },
-      { id: 'd5', label: 'Compromis de vente',      file: 'Compromis.pdf',            date: '06 juin 2026', size: '1.2 Mo', status: 'en-analyse' },
-    ],
-  },
-  {
-    id: 'c-fatou', name: 'Fatou Mbaye', ref: 'CPI-2026-04712', project: 'Appartement T3 — Dakar (Plateau)',
-    docs: [
-      { id: 'd1', label: "Pièce d'identité",       file: 'CNI.pdf',                  date: '12 juin 2026', size: '1.5 Mo', status: 'en-analyse' },
-      { id: 'd2', label: 'Justificatifs de revenus', file: 'Bulletins.pdf',            date: '12 juin 2026', size: '5.1 Mo', status: 'en-analyse' },
-      { id: 'd3', label: 'Relevés bancaires',       file: 'Releves.pdf',              date: '12 juin 2026', size: '2.4 Mo', status: 'en-analyse' },
-      { id: 'd4', label: 'Plan de masse',           file: 'Plan.pdf',                 date: '13 juin 2026', size: '0.9 Mo', status: 'en-analyse' },
-      { id: 'd5', label: 'Devis de construction',  file: '—',                        date: '—',            size: '—',      status: 'manquant'   },
-    ],
-  },
-];
-
-// Doc IDs that are backed by shared context (Aïssatou's required docs)
-const AISSATOU_REQUIRED_IDS = new Set(['identite', 'revenus', 'bancaires']);
+// Doc IDs backed by shared context (les 3 pièces requises du dossier)
+const REQUIRED_DOC_IDS = new Set(['identite', 'revenus', 'bancaires']);
 
 function DocStatusBadge({ status }: { status: DocStatus }) {
   const cfg = DOC_STATUS_CFG[status];
@@ -112,15 +86,12 @@ export default function DocumentsClientsModule({ agentName = 'Agent CPI' }: Prop
 
   const selectedEntry: ClientEntry = {
     id: selectedClientId,
-    name: selectedClientInfo?.name ?? CLIENT_AISSATOU.name,
-    ref: selectedClientInfo?.ref ?? CLIENT_AISSATOU.ref,
+    name: selectedClientInfo?.name ?? '',
+    ref: selectedClientInfo?.ref ?? '',
     project: selectedClientInfo
       ? `${selectedClientInfo.projectNom} — ${selectedClientInfo.adresse}`
-      : `${CLIENT_AISSATOU.projectNom} — ${CLIENT_AISSATOU.adresse}`,
-    docs: [
-      ...contextDocs,
-      ...(selectedClientId === CLIENT_AISSATOU.id ? AISSATOU_EXTRA_DOCS : []),
-    ],
+      : '',
+    docs: contextDocs,
   };
 
   // Local state for OTHER_CLIENTS (exclude the currently selected client to avoid duplicates)
@@ -138,7 +109,7 @@ export default function DocumentsClientsModule({ agentName = 'Agent CPI' }: Prop
 
   // Context docs are those belonging to the selected client's required IDs
   const isContextDoc = (clientId: string, docId: string) =>
-    clientId === selectedClientId && AISSATOU_REQUIRED_IDS.has(docId);
+    clientId === selectedClientId && REQUIRED_DOC_IDS.has(docId);
 
   const updateLocalDocStatus = (clientId: string, docId: string, newStatus: DocStatus, comment?: string) => {
     setOtherClients(prev => prev.map(c => c.id !== clientId ? c : {
@@ -211,9 +182,10 @@ export default function DocumentsClientsModule({ agentName = 'Agent CPI' }: Prop
       {/* Client list */}
       {allClients.map(client => {
         const isOpen = expanded === client.id;
-        const requiredDocs = client.id === CLIENT_AISSATOU.id ? client.docs.slice(0, 3) : client.docs;
+        const requiredDocs = client.docs;
         const accepted = requiredDocs.filter(d => d.status === 'accepte').length;
         const total = requiredDocs.length;
+        const progressPct = total > 0 ? (accepted / total) * 100 : 0;
         return (
           <div key={client.id} style={card}>
             <button
@@ -231,7 +203,7 @@ export default function DocumentsClientsModule({ agentName = 'Agent CPI' }: Prop
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                   <span style={{ fontFamily: 'var(--font-sans)', fontSize: '0.75rem', color: accepted === total ? 'var(--success)' : 'var(--muted-foreground)', fontWeight: 600 }}>{accepted}/{total} validés</span>
                   <div style={{ width: '60px', height: '4px', background: 'var(--muted)', borderRadius: '2px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${(accepted / total) * 100}%`, background: accepted === total ? 'var(--success)' : 'var(--primary)', borderRadius: '2px' }} />
+                    <div style={{ height: '100%', width: `${progressPct}%`, background: accepted === total ? 'var(--success)' : 'var(--primary)', borderRadius: '2px' }} />
                   </div>
                 </div>
                 {isOpen ? <ChevronUp size={15} style={{ color: 'var(--muted-foreground)' }} /> : <ChevronDown size={15} style={{ color: 'var(--muted-foreground)' }} />}

@@ -6,7 +6,6 @@ import {
   Award, GraduationCap, Clock, ShieldCheck,
 } from 'lucide-react';
 import type { AuthUser, UserRole, AppPage } from '../App';
-import { pbLogin } from '../data/pbClient';
 import { creerDemande } from '../data/enrolement';
 import cpiLogo from '../../imports/image.png';
 import chuesLogo from '../../imports/chues-logo.png';
@@ -70,12 +69,10 @@ const PROFIL_OPTIONS: {
   },
 ];
 
-// Comptes de test — connexion par e-mail + mot de passe (un par rôle).
-const TEST_ACCOUNTS: { email: string; password: string; role: UserRole; name: string; desc: string }[] = [
-  { email: 'client@cpi.sn', password: 'client123', role: 'user', name: 'Aïssatou Ndiaye', desc: 'Client'         },
-  { email: 'agent@cpi.sn',  password: 'agent123',  role: 'commercial',     name: 'Mme Thiombane',   desc: 'Agent CPI'      },
-  { email: 'admin@cpi.sn',  password: 'admin123',  role: 'admin',         name: 'Admin CPI',       desc: 'Administrateur' },
-];
+// Aucune authentification simulée. Les comptes de test codés en dur ont été
+// supprimés : aucun identifiant/mot de passe fictif, aucun accès automatique
+// Client/Agent/Admin, aucun compte bootstrap. La connexion réelle sera fournie
+// par le nouveau backend indépendant sécurisé (Phases 2–3).
 
 interface Props {
   page: AppPage;
@@ -595,28 +592,19 @@ function WelcomeScreen({ onNavigate, onLogin, onProfileSelect }: {
 }
 
 // ─── SCREEN 2 — Login ─────────────────────────────────────────────────────────
-function LoginScreen({ onLogin, onNavigate }: { onLogin: (u: AuthUser) => void; onNavigate: (p: AppPage) => void }) {
+function LoginScreen({ onNavigate }: { onLogin: (u: AuthUser) => void; onNavigate: (p: AppPage) => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      const acc = TEST_ACCOUNTS.find(
-        a => a.email.toLowerCase() === email.trim().toLowerCase() && a.password === password,
-      );
-      if (acc) {
-        // Pont hybride : ouvre aussi une session PocketBase (site 3000) pour la partie
-        // « parcelles / réservation ». Best-effort — n'empêche pas la connexion locale.
-        void pbLogin(acc.email, acc.password);
-        onLogin({ role: acc.role, name: acc.name, email: acc.email });
-      } else setError('E-mail ou mot de passe incorrect.');
-    }, 700);
+    // Authentification simulée supprimée : aucun utilisateur fictif n'est connecté.
+    // Tant que le nouveau backend sécurisé n'est pas installé, la connexion est indisponible.
+    setError(
+      "Le service d'authentification est en cours de configuration. La connexion sera disponible après l'installation du nouveau serveur sécurisé.",
+    );
   };
 
   const PHOTO = 'https://images.unsplash.com/photo-1721978536434-3cd55a457672?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1200';
@@ -744,19 +732,6 @@ function LoginScreen({ onLogin, onNavigate }: { onLogin: (u: AuthUser) => void; 
               Créer mon compte
             </button>
           </p>
-
-          {/* Comptes de test — carte discrète teintée CHUES */}
-          <div style={{ marginTop: '28px', padding: '16px', background: 'rgba(20,0,255,0.03)', border: '1px solid rgba(20,0,255,0.10)', borderRadius: '12px' }}>
-            <p style={{ fontFamily: 'var(--font-sans)', fontSize: '0.75rem', fontWeight: 700, color: '#1400ff', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Comptes de test</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {TEST_ACCOUNTS.map(acc => (
-                <div key={acc.role} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-sans)', fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                  <span style={{ fontWeight: 700, color: 'var(--foreground)' }}>{acc.desc}</span>
-                  <span style={{ fontFamily: 'monospace', fontSize: '0.6875rem' }}>{acc.email} · {acc.password}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 
@@ -1339,7 +1314,7 @@ function ChuesRegisterScreen({ onLogin, onNavigate }: { onLogin: (u: AuthUser) =
                     <label style={labelStyle}>Nom et prénom <span style={{ color: '#5D1615' }}>*</span></label>
                     <input
                       type="text"
-                      placeholder="Ex : DIAGNE Mamadou"
+                      placeholder="Ex : Prénom NOM"
                       value={form.nomComplet}
                       onChange={e => set('nomComplet')(e.target.value)}
                       className="auth-input"
@@ -1354,7 +1329,7 @@ function ChuesRegisterScreen({ onLogin, onNavigate }: { onLogin: (u: AuthUser) =
                     <label style={labelStyle}>E-mail <span style={{ color: '#5D1615' }}>*</span></label>
                     <input
                       type="email"
-                      placeholder="Ex : mamadou.diagne@email.com"
+                      placeholder="Ex : prenom.nom@email.com"
                       value={form.email}
                       onChange={e => set('email')(e.target.value)}
                       className="auth-input"

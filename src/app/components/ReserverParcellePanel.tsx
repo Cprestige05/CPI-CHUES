@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react';
 import { MapPin, Ruler, Tag, ShieldCheck, Loader2, CheckCircle2, RefreshCw } from 'lucide-react';
 import type { AuthUser } from '../App';
-import { pb, ensurePbAuth, pbUserId } from '../data/pbClient';
 
 /**
- * Vue « Réserver une parcelle » (hybride ciblé).
- * Lit les lots disponibles depuis PocketBase (site 3000) et permet au client de réserver
- * SI son dossier est validé (documents) ET financé (banque). La réservation crée une
- * reservations_temporaires « confirmee » → un hook serveur passe le lot en « reserve » →
- * la page publique /parcelles se synchronise automatiquement.
+ * Vue « Réserver une parcelle ».
+ * Découplé de tout backend externe : le catalogue des parcelles et la réservation seront
+ * fournis par le nouveau backend indépendant du projet (Phase ultérieure). En attendant,
+ * l'écran affiche un état vide fonctionnel — aucune lecture de données externe.
  */
 
 type Lot = {
@@ -17,7 +15,7 @@ type Lot = {
 
 const fmt = (n: number) => new Intl.NumberFormat('fr-FR').format(n || 0);
 
-export default function ReserverParcellePanel({ user }: { user: AuthUser }) {
+export default function ReserverParcellePanel(_props: { user: AuthUser }) {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
   const [gate, setGate]         = useState<{ canReserve: boolean; reason: string }>({ canReserve: false, reason: '' });
@@ -28,65 +26,22 @@ export default function ReserverParcellePanel({ user }: { user: AuthUser }) {
   async function load() {
     setLoading(true);
     setError('');
-    try {
-      const ok = await ensurePbAuth(user.role);
-      if (!ok) { setError("Connexion au service parcelles impossible."); setLoading(false); return; }
-
-      // Dossier du client → gâche
-      const uid = pbUserId();
-      let canReserve = false, reason = '';
-      try {
-        const regs = await pb.collection('registrations').getFullList({
-          filter: `userId = "${uid}"`, sort: '-created',
-        });
-        const reg: any = regs[0] || null;
-        const financingOk = reg?.eligibilite_cbao === 'eligible';
-        const missing = String(reg?.documents_manquants || '').trim().toLowerCase();
-        const docsOk = !!reg && (missing === '' || missing === '[]' || missing === '0' || missing === 'aucun');
-        if (!reg)            reason = "Vous n'avez pas encore de dossier validé.";
-        else if (!docsOk)    reason = "Vos documents doivent d'abord être validés.";
-        else if (!financingOk) reason = "Votre financement doit d'abord être accordé par la banque partenaire.";
-        canReserve = financingOk && docsOk;
-      } catch { reason = "Impossible de vérifier votre dossier."; }
-      setGate({ canReserve, reason });
-
-      // Lots disponibles
-      const items = await pb.collection('biens').getFullList({
-        filter: '(typologie = "PARCELLE_200" || typologie = "PARCELLE_225") && statut = "disponible"',
-        sort: 'ilot,numero_lot', fields: 'id,ilot,numero_lot,surface,prix,statut',
-      });
-      setLots(items as unknown as Lot[]);
-    } catch (e: any) {
-      setError("Chargement des parcelles impossible. Vérifiez que le site (3000/PocketBase) est démarré.");
-    } finally {
-      setLoading(false);
-    }
+    // Découplé de l'ancien PocketBase : aucun appel externe. Le catalogue et la gâche de
+    // réservation seront alimentés par le nouveau backend indépendant. État vide en attendant.
+    setGate({
+      canReserve: false,
+      reason: "Le service de réservation des parcelles sera disponible une fois le nouveau backend du projet configuré.",
+    });
+    setLots([]);
+    setLoading(false);
   }
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
-  async function reserve(lot: Lot) {
-    if (!gate.canReserve) return;
-    setReservingId(lot.id);
-    try {
-      const now = new Date();
-      const exp = new Date(now.getTime() + 30 * 24 * 3600 * 1000);
-      await pb.collection('reservations_temporaires').create({
-        user_id: pbUserId(),
-        bien_id: lot.id,
-        status: 'confirmee',
-        date_reservation: now.toISOString(),
-        date_expiration: exp.toISOString(),
-      });
-      // Le hook serveur passe le lot en "reserve" → on le retire de la liste dispo.
-      setLots(prev => prev.filter(l => l.id !== lot.id));
-      setDoneId(lot.id);
-      setTimeout(() => setDoneId(''), 4000);
-    } catch (e) {
-      setError("La réservation a échoué. Réessayez.");
-    } finally {
-      setReservingId('');
-    }
+  async function reserve(_lot: Lot) {
+    // Réservation indisponible tant que le nouveau backend parcelles n'est pas branché.
+    setReservingId('');
+    setDoneId('');
   }
 
   return (

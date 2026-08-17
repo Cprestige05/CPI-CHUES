@@ -4,9 +4,9 @@ import {
   PenSquare, Shield, EyeOff, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { useCpiDocs, type CpiDoc, type CpiDocStatus, type CpiCategorie } from '../data/cpiDocsContext';
-import { CLIENT_AISSATOU } from '../data/demoStore';
+import { useClientContext } from '../contexts/ClientContext';
 
-// ─── Types (existing local docs for non-Aïssatou clients) ────────────────────
+// ─── Types (local docs, hors documents CPI contextualisés) ───────────────────
 
 type DocType = 'Contrat' | 'Convention' | 'Courrier' | 'PV' | 'Document bancaire' | 'Autorisation';
 type DocStatut = 'brouillon' | 'publie' | 'archive';
@@ -50,15 +50,9 @@ const TYPE_COLORS: Record<DocType, string> = {
   'Autorisation':     '#C0392B',
 };
 
-// Other clients' docs only (Aïssatou's come from context)
-const INITIAL_DOCS: AdminDoc[] = [
-  { id: 'ad3', titre: 'Courrier de bienvenue',         type: 'Courrier',          destinataire: 'Mamadou Diallo', date: '10 juin 2026', statut: 'publie'    },
-  { id: 'ad4', titre: 'PV de réservation — Villa F3',  type: 'PV',                destinataire: 'Mamadou Diallo', date: '12 juin 2026', statut: 'brouillon' },
-  { id: 'ad5', titre: "Autorisation de prélèvement automatique", type: 'Autorisation', destinataire: 'Fatou Mbaye', date: '14 juin 2026', statut: 'publie' },
-  { id: 'ad6', titre: 'Fiche conditions de prêt CBAO', type: 'Document bancaire', destinataire: 'Fatou Mbaye',    date: '09 juin 2026', statut: 'archive'   },
-];
+// Aucune donnée fictive : les documents locaux se créent via l'interface.
+const INITIAL_DOCS: AdminDoc[] = [];
 
-const CLIENTS = [CLIENT_AISSATOU.name, 'Mamadou Diallo', 'Fatou Mbaye', 'Ibrahim Sow', 'Mariama Diallo'];
 const DOC_TYPES: DocType[] = ['Contrat', 'Convention', 'Courrier', 'PV', 'Document bancaire', 'Autorisation'];
 const CPI_CATEGORIES: CpiCategorie[] = ['contrats', 'conventions', 'bancaires', 'courriers', 'pv', 'autorisations'];
 
@@ -68,6 +62,11 @@ interface Props { agentName?: string; }
 
 export default function DocumentsAdminModule({ agentName = 'Agent CPI' }: Props) {
   const { cpiDocs, publishDoc, archiveDoc, requestSignature, markSigned, retireFromClient, createDoc } = useCpiDocs();
+  const { selectedClientId, allClients } = useClientContext();
+
+  const selectedClient = allClients.find(c => c.id === selectedClientId);
+  const selectedClientName = selectedClient?.name ?? '';
+  const CLIENTS = allClients.map(c => c.name);
 
   const [docs, setDocs] = useState<AdminDoc[]>(INITIAL_DOCS);
   const [showForm, setShowForm] = useState(false);
@@ -78,10 +77,10 @@ export default function DocumentsAdminModule({ agentName = 'Agent CPI' }: Props)
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2800); };
 
-  // Create — routes to context if Aïssatou, else local
+  // Create — routes to the CPI docs context for the selected client, else local
   const handleCreate = (asDraft: boolean) => {
     if (!form.titre || !form.destinataire) return;
-    if (form.destinataire === CLIENT_AISSATOU.name) {
+    if (selectedClientName && form.destinataire === selectedClientName) {
       createDoc(
         {
           categorie: form.categorie,
@@ -93,7 +92,7 @@ export default function DocumentsAdminModule({ agentName = 'Agent CPI' }: Props)
         agentName,
         !asDraft,
       );
-      showToast(asDraft ? 'Brouillon enregistré pour Aïssatou Ndiaye.' : 'Document publié dans l\'espace client d\'Aïssatou Ndiaye.');
+      showToast(asDraft ? `Brouillon enregistré pour ${selectedClientName}.` : `Document publié dans l'espace client de ${selectedClientName}.`);
     } else {
       const newDoc: AdminDoc = {
         id: 'ad' + Date.now(), titre: form.titre, type: form.type,
@@ -151,7 +150,7 @@ export default function DocumentsAdminModule({ agentName = 'Agent CPI' }: Props)
                 {CLIENTS.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-            {form.destinataire === CLIENT_AISSATOU.name ? (
+            {selectedClientName && form.destinataire === selectedClientName ? (
               <div>
                 <label style={labelStyle}>Catégorie CPI</label>
                 <select value={form.categorie} onChange={e => setForm(f => ({ ...f, categorie: e.target.value as CpiCategorie }))} style={inputStyle}>
@@ -171,9 +170,9 @@ export default function DocumentsAdminModule({ agentName = 'Agent CPI' }: Props)
             <label style={labelStyle}>Note interne (optionnelle)</label>
             <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} rows={2} placeholder="Note visible uniquement par l'équipe..." style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} />
           </div>
-          {form.destinataire === CLIENT_AISSATOU.name && (
+          {selectedClientName && form.destinataire === selectedClientName && (
             <div style={{ marginBottom: '12px', padding: '10px 12px', background: 'var(--secondary)', fontFamily: 'var(--font-sans)', fontSize: '0.8125rem', color: 'var(--primary)' }}>
-              Ce document sera ajouté dans les Documents CPI d'Aïssatou Ndiaye.
+              Ce document sera ajouté dans les Documents CPI de {selectedClientName}.
             </div>
           )}
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
@@ -186,7 +185,7 @@ export default function DocumentsAdminModule({ agentName = 'Agent CPI' }: Props)
         </div>
       )}
 
-      {/* ─── Aïssatou CPI section ──────────────────────────────────────── */}
+      {/* ─── CPI section (client sélectionné) ──────────────────────────── */}
       <div style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
         <button
           onClick={() => setCpiOpen(o => !o)}
@@ -194,7 +193,7 @@ export default function DocumentsAdminModule({ agentName = 'Agent CPI' }: Props)
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <FileText size={15} style={{ color: 'var(--primary)', flexShrink: 0 }} />
             <div>
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 700, color: 'var(--foreground)' }}>Documents CPI — Aïssatou Ndiaye</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: '0.9375rem', fontWeight: 700, color: 'var(--foreground)' }}>Documents CPI{selectedClientName ? ` — ${selectedClientName}` : ''}</span>
               <span style={{ marginLeft: '10px', fontFamily: 'var(--font-sans)', fontSize: '0.6875rem', fontWeight: 700, color: 'var(--muted-foreground)', background: 'var(--muted)', padding: '1px 7px' }}>{cpiDocs.length} doc{cpiDocs.length > 1 ? 's' : ''}</span>
             </div>
           </div>
@@ -244,7 +243,7 @@ export default function DocumentsAdminModule({ agentName = 'Agent CPI' }: Props)
                           <button title="Voir" style={btnSm('var(--primary)', 'var(--secondary)')}><Eye size={12} /> Voir</button>
                           <button title="Télécharger" style={btnSm('var(--muted-foreground)', 'var(--muted)')}><Download size={12} /></button>
                           {doc.status === 'brouillon' && (
-                            <button onClick={() => { publishDoc(doc.id, agentName); showToast('Document publié dans l\'espace client d\'Aïssatou Ndiaye.'); }} style={btnSm('var(--success)', 'rgba(26,107,68,0.10)')}><Send size={12} /> Publier</button>
+                            <button onClick={() => { publishDoc(doc.id, agentName); showToast('Document publié dans l\'espace client.'); }} style={btnSm('var(--success)', 'rgba(26,107,68,0.10)')}><Send size={12} /> Publier</button>
                           )}
                           {(doc.status === 'disponible' || doc.status === 'publie') && (
                             <button onClick={() => { requestSignature(doc.id, agentName); showToast('Signature demandée.'); }} style={btnSm('#8B5CF6', 'rgba(139,92,246,0.10)')}><PenSquare size={12} /> Signer</button>

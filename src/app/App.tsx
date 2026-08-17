@@ -13,9 +13,28 @@ export interface AuthUser {
 
 export type AppPage = 'welcome' | 'login' | 'register' | 'chues-register' | 'dashboard';
 
+/**
+ * Prévisualisation strictement locale (DÉVELOPPEMENT UNIQUEMENT) — permet d'afficher un
+ * tableau de bord en état vide sans authentification réelle, le temps que le nouveau
+ * backend sécurisé soit installé. Gardée par `import.meta.env.DEV` : totalement inerte
+ * dans un build de production. N'injecte AUCUN compte, AUCUN identifiant, AUCUN nom fictif
+ * (name vide). Usage : ?devpreview=client | agent | admin
+ */
+function devPreviewUser(): AuthUser | null {
+  if (!import.meta.env.DEV) return null;
+  try {
+    const p = new URLSearchParams(window.location.search).get('devpreview');
+    const map: Record<string, UserRole> = { client: 'user', agent: 'commercial', admin: 'admin' };
+    const role = p ? map[p] : undefined;
+    if (role) return { role, name: '' };
+  } catch { /* noop */ }
+  return null;
+}
+
 export default function App() {
-  const [page, setPage] = useState<AppPage>('welcome');
-  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const preview = devPreviewUser();
+  const [page, setPage] = useState<AppPage>(preview ? 'dashboard' : 'welcome');
+  const [authUser, setAuthUser] = useState<AuthUser | null>(preview);
 
   const handleLogin = (user: AuthUser) => {
     setAuthUser(user);

@@ -119,32 +119,32 @@ const NATURE_LABELS: Record<string, string> = {
   viabilisation: 'Viabilisation de terrain',
 };
 
+// Définitions des documents requis (structure conservée) — AUCUN état fictif.
+// Chaque document démarre « non-envoyé » ; le statut réel viendra du dépôt du client.
 const DOCS_INITIAL: DocItem[] = [
   {
     id: 'cni', label: 'CNI ou passeport',
     description: "Pièce d'identité nationale ou passeport en cours de validité",
     obligatoire: true, formats: 'PDF, JPG, PNG',
-    statut: 'valide', taille: '2.1 Mo', dateEnvoi: '03 juin 2026', version: 1,
+    statut: 'non-envoye', version: 0,
   },
   {
     id: 'domicile', label: 'Justificatif de domicile',
     description: "Facture d'eau, d'électricité ou bail de moins de 3 mois",
     obligatoire: true, formats: 'PDF, JPG, PNG',
-    statut: 'valide', taille: '1.4 Mo', dateEnvoi: '03 juin 2026', version: 1,
+    statut: 'non-envoye', version: 0,
   },
   {
     id: 'salaire', label: 'Bulletin de salaire',
     description: '3 derniers bulletins de salaire ou justificatifs de revenus',
     obligatoire: true, formats: 'PDF',
-    statut: 'valide', taille: '4.7 Mo', dateEnvoi: '04 juin 2026', version: 1,
+    statut: 'non-envoye', version: 0,
   },
   {
     id: 'releves', label: 'Relevés bancaires (3 derniers mois)',
     description: '3 derniers mois de relevés de compte courant',
     obligatoire: true, formats: 'PDF',
-    statut: 'refuse', taille: '1.8 Mo', dateEnvoi: '05 juin 2026',
-    motifRefus: 'Document illisible — veuillez renvoyer en qualité supérieure (300 dpi minimum)',
-    agentRefus: 'Mme Thiombane', version: 1,
+    statut: 'non-envoye', version: 0,
   },
   {
     id: 'attestation', label: "Attestation de travail",
@@ -154,14 +154,8 @@ const DOCS_INITIAL: DocItem[] = [
   },
 ];
 
-const TIMELINE = [
-  { date: '03 juin 2026', hour: '09:12', text: 'Demande créée',                                 type: 'success' },
-  { date: '04 juin 2026', hour: '14:30', text: 'Documents reçus — CNI, bulletins, domicile',    type: 'success' },
-  { date: '08 juin 2026', hour: '11:00', text: 'Analyse démarrée par le service instruction',   type: 'success' },
-  { date: '10 juin 2026', hour: '16:45', text: 'Conseillère affectée — Mme Thiombane',          type: 'success' },
-  { date: '14 juin 2026', hour: '09:20', text: 'Relevé bancaire refusé — renvoi demandé',       type: 'warning' },
-  { date: '—',            hour: '—',     text: 'Validation bancaire (prochaine étape)',     type: 'pending' },
-];
+// Historique de la demande — vide par défaut (aucun évènement fictif).
+const TIMELINE: { date: string; hour: string; text: string; type: string }[] = [];
 
 // ── Design tokens ──────────────────────────────────────────────────
 const CARD_RADIUS = 20;

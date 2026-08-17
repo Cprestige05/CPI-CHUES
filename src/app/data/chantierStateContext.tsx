@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { CHANTIER_AISSATOU, TRANCHES_AISSATOU, CHANTIER_MAMADOU, TRANCHES_MAMADOU } from './demoStore';
 import { useClientContext } from '../contexts/ClientContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -130,60 +129,8 @@ interface PersistedState {
   history: ChantierHistoryEntry[];
 }
 
-const INITIAL_INFO_AISSATOU: ChantierInfo = {
-  id: CHANTIER_AISSATOU.id,
-  clientId: 'c-aissatou',
-  client: 'Aïssatou Ndiaye',
-  projet: CHANTIER_AISSATOU.nom,
-  reference: 'CPI-2026-04721',
-  localisation: 'Ngolfagnick (Thiès)',
-  chefChantier: CHANTIER_AISSATOU.chefChantier,
-  entreprise: CHANTIER_AISSATOU.entreprise,
-  dateDebut: CHANTIER_AISSATOU.dateDebut,
-  dateLivraison: CHANTIER_AISSATOU.dateLivraison,
-  progression: 42,
-  etapeActuelle: 'Gros œuvre',
-  statut: 'en-cours',
-  derniereMAJ: '18 juin 2026',
-};
-
-const INITIAL_TRANCHES_AISSATOU: ChantierTranche[] = TRANCHES_AISSATOU.map(t => ({
-  num: t.num,
-  label: t.num === 2 ? 'Élévation des murs, poteaux, dalle et toiture' : t.num === 4 ? 'Remise des clés' : t.label,
-  description: t.description ?? '',
-  pct: t.pct,
-  etat: t.etat,
-  date: t.date,
-  comment: t.comment,
-}));
-
-const INITIAL_PUBLICATIONS_AISSATOU: ChantierPublication[] = [
-  { id: 'pub1', phase: 2, titre: '14 nouvelles photos ajoutées — Tranche T2 (élévation)',              description: '', date: '18 juin 2026', heure: '10:00', auteur: 'Mme Thiombane', type: 'photo',        visibleClient: true },
-  { id: 'pub2', phase: 2, titre: 'Inspection CPI réalisée — rapport disponible dans les documents',    description: '', date: '18 juin 2026', heure: '14:30', auteur: 'Mme Thiombane', type: 'actualite',    visibleClient: true },
-  { id: 'pub3', phase: 2, titre: 'Livraison matériaux de construction (lot 2) — 8 tonnes de ciment',  description: '', date: '10 juin 2026', heure: '09:00', auteur: 'Aliou Koné',    type: 'actualite',    visibleClient: true },
-  { id: 'pub4', phase: 2, titre: 'PV de réunion de chantier — semaine du 9 juin',                     description: '', date: '10 juin 2026', heure: '17:00', auteur: 'Aliou Koné',    type: 'document',     visibleClient: true },
-  { id: 'pub5', phase: 2, titre: 'Tranche T2 démarrée — poteaux en cours de coulage',                 description: '', date: '15 mai 2026',  heure: '08:00', auteur: 'Mme Thiombane', type: 'etape-validee',visibleClient: true },
-  { id: 'pub6', phase: 1, titre: 'Décaissement T1 confirmé — 6 475 000 FCFA versés par CBAO',         description: '', date: '15 mai 2026',  heure: '16:00', auteur: 'Mme Thiombane', type: 'actualite',    visibleClient: true },
-  { id: 'pub7', phase: 1, titre: 'Fondations terminées — T1 validée par CPI et CBAO',                 description: '', date: '10 mars 2026', heure: '11:00', auteur: 'Mme Thiombane', type: 'etape-validee',visibleClient: true },
-  { id: 'pub8', phase: 1, titre: '8 photos de la phase fondations disponibles dans la galerie',        description: '', date: '10 mars 2026', heure: '15:00', auteur: 'Mme Thiombane', type: 'photo',        visibleClient: true },
-];
-
-const INITIAL_MEDIAS_AISSATOU: ChantierMedia[] = [
-  { id: 'm1', type: 'photo', titre: 'Fondations J+3',   description: '', date: '10 mars 2026', phase: 1, auteur: 'Aliou Koné',    url: '', bg: 'linear-gradient(135deg,#7B1A2E,#B05070)', visibleClient: true },
-  { id: 'm2', type: 'photo', titre: 'Coulage béton',    description: '', date: '10 mars 2026', phase: 1, auteur: 'Aliou Koné',    url: '', bg: 'linear-gradient(135deg,#38080F,#7B1A2E)', visibleClient: true },
-  { id: 'm3', type: 'photo', titre: 'Fondations T1 ✓',  description: '', date: '15 mars 2026', phase: 1, auteur: 'Aliou Koné',    url: '', bg: 'linear-gradient(135deg,#5C1224,#A04060)', visibleClient: true },
-  { id: 'm4', type: 'photo', titre: 'Poteaux J+1',      description: '', date: '20 mai 2026',  phase: 2, auteur: 'Aliou Koné',    url: '', bg: 'linear-gradient(135deg,#1E4D8C,#2D6BC4)', visibleClient: true },
-  { id: 'm5', type: 'photo', titre: 'Élévation Nord',   description: '', date: '28 mai 2026',  phase: 2, auteur: 'Aliou Koné',    url: '', bg: 'linear-gradient(135deg,#163B6E,#1E4D8C)', visibleClient: true },
-  { id: 'm6', type: 'photo', titre: 'Matériaux livrés', description: '', date: '10 juin 2026', phase: 2, auteur: 'Aliou Koné',    url: '', bg: 'linear-gradient(135deg,#1A6B44,#2A9B64)', visibleClient: true },
-  { id: 'm7', type: 'photo', titre: 'Façade Est',       description: '', date: '12 juin 2026', phase: 2, auteur: 'Aliou Koné',    url: '', bg: 'linear-gradient(135deg,#1A4D2E,#1A6B44)', visibleClient: true },
-  { id: 'm8', type: 'photo', titre: 'Vue aérienne',     description: '', date: '18 juin 2026', phase: 2, auteur: 'Mme Thiombane', url: '', bg: 'linear-gradient(135deg,#C8921A,#E0B030)', visibleClient: true },
-];
-
-const INITIAL_EVENTS_AISSATOU: CalendarEvent[] = [
-  { id: 'ev1', titre: 'Visite de chantier',             type: 'visite',     date: '28 juillet 2026', heure: '10:00', description: "Inspection de l'avancement du gros œuvre.",              statut: 'prevu',    visibleClient: true  },
-  { id: 'ev2', titre: 'Inspection CBAO — Certification T2', type: 'inspection', date: '5 août 2026',     heure: '09:00', description: "Inspection bancaire pour déblocage de la tranche T2.", statut: 'confirme', visibleClient: false },
-];
-
+// Aucune donnée fictive : aucun chantier préconfiguré. Les chantiers réels se
+// créent via les vrais dossiers ; l'état par défaut est fourni par emptyState().
 const INITIAL_STATE_BY_CLIENT: Record<string, PersistedState> = {
 };
 

@@ -63,22 +63,6 @@ const EVENT_TYPES: { value: CalendarEventType; label: string }[] = [
 
 const CH1_ID = 'ch-aissatou';
 
-// Static ch2 (Mamadou) — not connected to context
-const INITIAL_CH2: ChantierProject = {
-  id: 'ch2', nom: 'Villa F3 — Thiès Nord', client: 'Mamadou Diallo',
-  ref: 'CPI-2026-04698', progression: 18, etape: 'Fondations',
-  chefChantier: 'Cheikh Mbaye', entreprise: 'CONSTRUIRE SA',
-  dateDebut: '01 juin 2026', dateLivraison: '01 avr. 2027',
-  tranches: [
-    { num: 1, label: 'Démarrage (35%)',    pct: 35, status: 'en-cours',   date: '', comment: '' },
-    { num: 2, label: 'Gros œuvre (30%)',   pct: 30, status: 'en-attente', date: '', comment: '' },
-    { num: 3, label: 'Second œuvre (30%)', pct: 30, status: 'en-attente', date: '', comment: '' },
-    { num: 4, label: 'Livraison (5%)',     pct: 5,  status: 'en-attente', date: '', comment: '' },
-  ],
-  photos: [],
-  commentaires: [],
-};
-
 interface Props { agentName?: string; }
 
 export default function ChantierModule({ agentName = 'Agent CPI' }: Props) {
@@ -112,8 +96,8 @@ export default function ChantierModule({ agentName = 'Agent CPI' }: Props) {
       .map(p => ({ auteur: p.auteur, date: p.date, texte: p.titre || p.description })),
   };
 
-  const [ch2, setCh2] = useState<ChantierProject>(INITIAL_CH2);
-  const chantiers = [ch1Live, ch2];
+  // Aucune donnée fictive : seul le chantier réel piloté par le contexte est affiché.
+  const chantiers = [ch1Live];
 
   const [expanded, setExpanded] = useState<string | null>(CH1_ID);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -150,8 +134,6 @@ export default function ChantierModule({ agentName = 'Agent CPI' }: Props) {
       if (editEtape !== ch1Live.etape) updateEtape(editEtape, agentName);
       if (editStatut !== chantierInfo.statut) updateStatut(editStatut, agentName);
       if (editLivraison && editLivraison !== chantierInfo.dateLivraison) updateLivraison(editLivraison, agentName);
-    } else {
-      setCh2(prev => ({ ...prev, progression: editProg, etape: editEtape, dateLivraison: editLivraison }));
     }
     setEditingId(null);
     showToast("Avancement mis à jour — visible dans l'espace client.");
@@ -164,11 +146,6 @@ export default function ChantierModule({ agentName = 'Agent CPI' }: Props) {
         phase: 0, titre: commentText.trim(), description: '',
         type: 'commentaire', visibleClient: true, auteur: agentName,
       }, agentName);
-    } else {
-      setCh2(prev => ({
-        ...prev,
-        commentaires: [{ auteur: agentName, date: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }), texte: commentText.trim() }, ...prev.commentaires],
-      }));
     }
     setCommentText('');
     showToast('Commentaire ajouté.');
@@ -177,14 +154,6 @@ export default function ChantierModule({ agentName = 'Agent CPI' }: Props) {
   const validateTranche = (chId: string, trNum: number) => {
     if (chId === CH1_ID) {
       ctxValidateTranche(trNum, agentName);
-    } else {
-      setCh2(prev => ({
-        ...prev,
-        tranches: prev.tranches.map(t => t.num !== trNum ? t : {
-          ...t, status: 'valide',
-          date: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }),
-        }),
-      }));
     }
     showToast('Tranche validée.');
   };
@@ -194,11 +163,6 @@ export default function ChantierModule({ agentName = 'Agent CPI' }: Props) {
     const { chId, trNum } = trancheComment;
     if (chId === CH1_ID) {
       ctxAddTrancheComment(trNum, trancheCommentText.trim(), agentName);
-    } else {
-      setCh2(prev => ({
-        ...prev,
-        tranches: prev.tranches.map(t => t.num !== trNum ? t : { ...t, comment: trancheCommentText.trim() }),
-      }));
     }
     setTrancheComment(null);
     setTrancheCommentText('');
