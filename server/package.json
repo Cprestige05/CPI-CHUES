@@ -9,6 +9,7 @@
     "start": "tsx src/index.ts",
     "migrate": "tsx src/db/migrate.ts",
     "create-admin": "tsx src/cli/createAdmin.ts",
+    "create-agent": "tsx src/cli/createAdmin.ts --role=AGENT_CPI",
     "dev-mail": "tsx src/cli/devMail.ts",
     "maintenance:check": "tsx src/cli/maintenance.ts check",
     "maintenance:reset": "tsx src/cli/maintenance.ts reset",

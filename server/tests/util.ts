@@ -30,8 +30,13 @@ export function lastToken(kind: 'email_verification' | 'password_reset'): string
 /** Agent supertest qui conserve les cookies (session). */
 export const agent = () => request.agent(app);
 
-/** Inscrit + vérifie l'e-mail + connecte un CLIENT ; renvoie l'agent et l'userId. */
-export async function newClient(email: string, password = DEFAULT_PW) {
+/**
+ * Inscrit + vérifie l'e-mail + connecte un CLIENT ; renvoie l'agent et l'userId.
+ * Par défaut, le compte est APPROUVÉ (comme après validation admin) pour que le
+ * client puisse accéder à son dossier. Passer `approved: false` pour tester le
+ * blocage « compte en attente ».
+ */
+export async function newClient(email: string, password = DEFAULT_PW, opts: { approved?: boolean } = {}) {
   const a = agent();
   const reg = await a.post('/api/auth/register').send({
     firstName: 'Awa', lastName: 'Diop', email, password, acceptTerms: true,
@@ -40,7 +45,9 @@ export async function newClient(email: string, password = DEFAULT_PW) {
   await a.post('/api/auth/verify-email').send({ token: lastToken('email_verification') });
   const login = await a.post('/api/auth/login').send({ email, password });
   if (login.status !== 200) throw new Error('login a échoué: ' + login.status);
-  return { a, userId: login.body.user.id as string };
+  const userId = login.body.user.id as string;
+  if (opts.approved !== false) db.prepare('UPDATE users SET approved = 1 WHERE id = ?').run(userId);
+  return { a, userId };
 }
 
 /** Crée un ADMIN directement en base puis connecte un agent. */
@@ -49,14 +56,31 @@ export async function newAdmin(email: string, password = DEFAULT_PW) {
   const t = now();
   const hash = await hashPassword(password);
   db.prepare(
-    `INSERT INTO users (id, email, phone, password_hash, role, email_verified, created_at, updated_at)
-     VALUES (?,?,?,?, 'ADMIN', 1, ?, ?)`,
+    `INSERT INTO users (id, email, phone, password_hash, role, email_verified, approved, created_at, updated_at)
+     VALUES (?,?,?,?, 'ADMIN', 1, 1, ?, ?)`,
   ).run(id, email.toLowerCase(), null, hash, t, t);
   db.prepare('INSERT INTO profiles (id, user_id, first_name, last_name, created_at, updated_at) VALUES (?,?,?,?,?,?)')
     .run(newId('prf'), id, 'Admin', '', t, t);
   const a = agent();
   const login = await a.post('/api/auth/login').send({ email, password });
   if (login.status !== 200) throw new Error('login admin a échoué: ' + login.status);
+  return { a, userId: id };
+}
+
+/** Crée un AGENT CPI directement en base puis connecte un agent supertest. */
+export async function newAgent(email: string, password = DEFAULT_PW) {
+  const id = newId('usr');
+  const t = now();
+  const hash = await hashPassword(password);
+  db.prepare(
+    `INSERT INTO users (id, email, phone, password_hash, role, email_verified, approved, created_at, updated_at)
+     VALUES (?,?,?,?, 'AGENT_CPI', 1, 1, ?, ?)`,
+  ).run(id, email.toLowerCase(), null, hash, t, t);
+  db.prepare('INSERT INTO profiles (id, user_id, first_name, last_name, created_at, updated_at) VALUES (?,?,?,?,?,?)')
+    .run(newId('prf'), id, 'Agent', 'CPI', t, t);
+  const a = agent();
+  const login = await a.post('/api/auth/login').send({ email, password });
+  if (login.status !== 200) throw new Error('login agent a échoué: ' + login.status);
   return { a, userId: id };
 }
 

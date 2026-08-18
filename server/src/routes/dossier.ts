@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import { ah } from '../middleware/error.js';
 import { requireAuth } from '../middleware/auth.js';
-import { requireClient } from '../middleware/rbac.js';
+import { requireClient, requireApproved } from '../middleware/rbac.js';
 import { profileSchema } from '../validation/schemas.js';
 import {
   ensureDossier, getProfile, updateProfile, listDocuments, completeness, submitDossier, requirements,
 } from '../services/dossier.js';
 
 export const dossierRouter = Router();
-dossierRouter.use(requireAuth, requireClient);
+dossierRouter.use(requireAuth, requireClient, requireApproved);
 
 // Récupère (ou crée) le dossier du client connecté + profil + documents + complétude.
 dossierRouter.get('/', ah(async (req, res) => {

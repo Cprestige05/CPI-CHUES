@@ -42,18 +42,19 @@ export function attachUser(req: Request, _res: Response, next: NextFunction): vo
   const hash = sha256(token);
   const row = db
     .prepare(
-      `SELECT u.id AS id, u.email AS email, u.role AS role, u.email_verified AS ev, s.expires_at AS exp
+      `SELECT u.id AS id, u.email AS email, u.role AS role, u.email_verified AS ev,
+              u.approved AS approved, u.assigned_agent_id AS agent, s.expires_at AS exp
        FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.token_hash = ?`,
     )
-    .get(hash) as { id: string; email: string; role: string; ev: number; exp: number } | undefined;
+    .get(hash) as { id: string; email: string; role: string; ev: number; approved: number; agent: string | null; exp: number } | undefined;
 
   if (!row) return next();
   if (row.exp < now()) {
     db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(hash); // session expirée → purge
     return next();
   }
-  req.user = { id: row.id, email: row.email, role: row.role as any, emailVerified: !!row.ev };
+  req.user = { id: row.id, email: row.email, role: row.role as any, emailVerified: !!row.ev, approved: !!row.approved, assignedAgentId: row.agent };
   next();
 }
 

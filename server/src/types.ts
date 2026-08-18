@@ -5,6 +5,8 @@ export interface AuthUser {
   email: string;
   role: Role;
   emailVerified: boolean;
+  approved: boolean;              // compte validé par l'admin (le personnel l'est d'office)
+  assignedAgentId: string | null; // agent CPI attribué (clients uniquement)
 }
 
 declare global {

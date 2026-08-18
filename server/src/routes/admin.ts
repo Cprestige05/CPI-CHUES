@@ -1,19 +1,21 @@
 import { Router } from 'express';
-import { ah } from '../middleware/error.js';
+import { ah, badRequest } from '../middleware/error.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requireStaff, requireAdmin } from '../middleware/rbac.js';
 import { dossierFilterSchema, reviewReasonSchema } from '../validation/schemas.js';
 import {
   listDossiers, getDossierFull, dossierHistory,
   takeCharge, validateDocument, requestCorrection, rejectDocument, globalValidate,
+  listAccounts, listAgents, approveAndAssign, activityLog,
 } from '../services/admin.js';
 
 export const adminRouter = Router();
 adminRouter.use(requireAuth, requireStaff);
 
-// Liste filtrée des dossiers soumis.
+// Liste filtrée des dossiers soumis. Un agent ne voit QUE ses clients attribués.
 adminRouter.get('/dossiers', ah(async (req, res) => {
-  const filter = dossierFilterSchema.parse(req.query);
+  const filter = dossierFilterSchema.parse(req.query) as { status?: string; q?: string; agentId?: string };
+  if (req.user!.role === 'AGENT_CPI') filter.agentId = req.user!.id;
   res.json({ dossiers: listDossiers(filter) });
 }));
 
@@ -49,4 +51,29 @@ adminRouter.post('/documents/:id/reject', ah(async (req, res) => {
 // ── Validation globale du dossier (Administrateur uniquement) ──
 adminRouter.post('/dossiers/:id/validate', requireAdmin, ah(async (req, res) => {
   res.json({ ok: true, ...globalValidate(req.user!, req.params.id) });
+}));
+
+// ── Comptes : validation + attribution d'agent (ADMIN) ──
+// Liste des comptes clients (filtre ?status=pending|approved&q=…).
+adminRouter.get('/accounts', requireAdmin, ah(async (req, res) => {
+  const status = req.query.status === 'pending' || req.query.status === 'approved' ? req.query.status : undefined;
+  const q = typeof req.query.q === 'string' ? req.query.q : undefined;
+  res.json({ accounts: listAccounts({ status, q }) });
+}));
+
+// Liste des agents CPI (pour l'attribution).
+adminRouter.get('/agents', requireAdmin, ah(async (_req, res) => {
+  res.json({ agents: listAgents() });
+}));
+
+// Valide un compte client + l'attribue à un agent CPI.
+adminRouter.post('/accounts/:id/approve', requireAdmin, ah(async (req, res) => {
+  const agentId = typeof req.body?.agentId === 'string' ? req.body.agentId : '';
+  if (!agentId) throw badRequest('Agent CPI requis.', 'agent_required');
+  res.json({ ok: true, ...approveAndAssign(req.user!, req.params.id, agentId) });
+}));
+
+// Journal d'activité global (traçabilité admin).
+adminRouter.get('/activity', requireAdmin, ah(async (_req, res) => {
+  res.json({ activity: activityLog() });
 }));

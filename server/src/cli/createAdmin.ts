@@ -24,7 +24,14 @@ function argOf(name: string): string | undefined {
 async function main() {
   const email = (argOf('email') ?? process.env.ADMIN_EMAIL ?? '').trim().toLowerCase();
   const password = argOf('password') ?? process.env.ADMIN_PASSWORD ?? '';
+  const role = (argOf('role') ?? 'ADMIN').toUpperCase();
+  const firstName = argOf('first') ?? (role === 'AGENT_CPI' ? 'Agent' : 'Admin');
+  const lastName = argOf('last') ?? '';
 
+  if (role !== 'ADMIN' && role !== 'AGENT_CPI') {
+    console.error('Erreur : --role doit valoir ADMIN ou AGENT_CPI.');
+    process.exit(1);
+  }
   if (!email || !password) {
     console.error('Erreur : --email et --password sont obligatoires (aucune valeur par défaut).');
     process.exit(1);
@@ -45,16 +52,17 @@ async function main() {
   const t = now();
   const hash = await hashPassword(password);
   db.transaction(() => {
+    // Le personnel est approuvé d'office (approved = 1).
     db.prepare(
-      `INSERT INTO users (id, email, phone, password_hash, role, email_verified, created_at, updated_at)
-       VALUES (?,?,?,?, 'ADMIN', 1, ?, ?)`,
-    ).run(id, email, null, hash, t, t);
+      `INSERT INTO users (id, email, phone, password_hash, role, email_verified, approved, created_at, updated_at)
+       VALUES (?,?,?,?,?, 1, 1, ?, ?)`,
+    ).run(id, email, null, hash, role, t, t);
     db.prepare(
       'INSERT INTO profiles (id, user_id, first_name, last_name, created_at, updated_at) VALUES (?,?,?,?,?,?)',
-    ).run(newId('prf'), id, 'Admin', '', t, t);
+    ).run(newId('prf'), id, firstName, lastName, t, t);
   })();
 
-  console.log(`Administrateur créé : ${email}`);
+  console.log(`${role === 'AGENT_CPI' ? 'Agent CPI' : 'Administrateur'} créé : ${email}`);
 }
 
 main().catch(err => { console.error('Échec :', (err as Error).message); process.exit(1); });

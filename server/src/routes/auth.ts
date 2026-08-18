@@ -32,7 +32,7 @@ authRouter.post('/login', loginRateLimit, ah(async (req, res) => {
   }
   resetLoginAttempts(email, ip);
   createSession(res, user.id, ip, String(req.headers['user-agent'] ?? ''));
-  res.json({ ok: true, user: { id: user.id, email: user.email, role: user.role, emailVerified: !!user.email_verified } });
+  res.json({ ok: true, user: { id: user.id, email: user.email, role: user.role, emailVerified: !!user.email_verified, approved: !!user.approved, assignedAgentId: user.assigned_agent_id ?? null } });
 }));
 
 // Session courante.

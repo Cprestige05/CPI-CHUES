@@ -12,6 +12,8 @@ import { normalizePhone } from '../validation/schemas.js';
 export interface UserRow {
   id: string; email: string; phone: string | null; password_hash: string;
   role: 'CLIENT' | 'AGENT_CPI' | 'ADMIN'; email_verified: number; created_at: number; updated_at: number;
+  approved: number; approved_at: number | null; approved_by: string | null;
+  assigned_agent_id: string | null; assigned_at: number | null;
 }
 
 export const findByEmail = (email: string): UserRow | undefined =>
@@ -57,6 +59,10 @@ export async function registerClient(input: {
   await mailer.send({ to: email, subject: 'Vérifiez votre adresse', kind: 'email_verification', token: tok.token });
 
   logActivity({ actorId: userId, actorRole: 'CLIENT', action: 'user_registered', entityType: 'user', entityId: userId });
+  // Alerte les admins : un compte est à valider.
+  for (const admin of db.prepare("SELECT id FROM users WHERE role = 'ADMIN'").all() as { id: string }[]) {
+    notify(admin.id, 'account_pending', 'Nouveau compte à valider', `${input.firstName} ${input.lastName} vient de s'inscrire.`);
+  }
   return { userId };
 }
 

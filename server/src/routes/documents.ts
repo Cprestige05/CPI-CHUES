@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ah, badRequest } from '../middleware/error.js';
 import { requireAuth } from '../middleware/auth.js';
-import { requireClient } from '../middleware/rbac.js';
+import { requireClient, requireApproved } from '../middleware/rbac.js';
 import { upload } from '../middleware/upload.js';
 import { uploadMetaSchema } from '../validation/schemas.js';
 import { ensureDossier, uploadDocument, deleteDocument, getVersionForUser } from '../services/dossier.js';
@@ -9,7 +9,7 @@ import { ensureDossier, uploadDocument, deleteDocument, getVersionForUser } from
 export const documentsRouter = Router();
 
 // Dépôt / remplacement d'un fichier (client). Le remplacement crée une nouvelle version.
-documentsRouter.post('/', requireAuth, requireClient, upload.single('file'), ah(async (req, res) => {
+documentsRouter.post('/', requireAuth, requireClient, requireApproved, upload.single('file'), ah(async (req, res) => {
   if (!req.file) throw badRequest('Aucun fichier fourni.', 'no_file');
   const meta = uploadMetaSchema.parse(req.body);
   const dossier = ensureDossier(req.user!.id);
@@ -31,7 +31,7 @@ documentsRouter.get('/:versionId/download', requireAuth, ah(async (req, res) => 
 }));
 
 // Suppression d'un document — uniquement avant la soumission.
-documentsRouter.delete('/:documentId', requireAuth, requireClient, ah(async (req, res) => {
+documentsRouter.delete('/:documentId', requireAuth, requireClient, requireApproved, ah(async (req, res) => {
   const dossier = ensureDossier(req.user!.id);
   deleteDocument(dossier, req.params.documentId);
   res.json({ ok: true });

@@ -105,10 +105,11 @@ export function globalValidate(reviewer: AuthUser, dossierId: string) {
 }
 
 // ─── Lecture ──────────────────────────────────────────────────────────────────
-export function listDossiers(filter: { status?: string; q?: string }) {
+export function listDossiers(filter: { status?: string; q?: string; agentId?: string }) {
   const clauses: string[] = ['dos.status != ?'];
   const params: unknown[] = ['BROUILLON']; // on ne montre pas les brouillons non soumis
   if (filter.status) { clauses.push('dos.status = ?'); params.push(filter.status); }
+  if (filter.agentId) { clauses.push('u.assigned_agent_id = ?'); params.push(filter.agentId); } // agent : ses clients uniquement
   if (filter.q) {
     clauses.push('(u.email LIKE ? OR p.first_name LIKE ? OR p.last_name LIKE ?)');
     const like = `%${filter.q}%`; params.push(like, like, like);
@@ -142,4 +143,76 @@ export function dossierHistory(dossierId: string) {
      FROM admin_reviews ar LEFT JOIN users u ON u.id = ar.reviewer_id
      WHERE ar.dossier_id = ? ORDER BY ar.created_at`,
   ).all(dossierId);
+}
+
+// ─── Comptes : validation admin + attribution agent (ADMIN) ───────────────────
+
+/** Liste des comptes CLIENT avec leur statut de validation et l'agent attribué. */
+export function listAccounts(filter: { status?: 'pending' | 'approved'; q?: string } = {}) {
+  const clauses: string[] = ["u.role = 'CLIENT'"];
+  const params: unknown[] = [];
+  if (filter.status === 'pending') clauses.push('u.approved = 0');
+  if (filter.status === 'approved') clauses.push('u.approved = 1');
+  if (filter.q) {
+    clauses.push('(u.email LIKE ? OR p.first_name LIKE ? OR p.last_name LIKE ?)');
+    const like = `%${filter.q}%`; params.push(like, like, like);
+  }
+  const rows = db.prepare(
+    `SELECT u.id, u.email, u.email_verified, u.approved, u.created_at, u.assigned_agent_id,
+            p.first_name, p.last_name, p.phone,
+            ag.email AS agent_email, agp.first_name AS agent_first, agp.last_name AS agent_last
+     FROM users u
+     LEFT JOIN profiles p  ON p.user_id = u.id
+     LEFT JOIN users ag    ON ag.id = u.assigned_agent_id
+     LEFT JOIN profiles agp ON agp.user_id = u.assigned_agent_id
+     WHERE ${clauses.join(' AND ')}
+     ORDER BY u.created_at DESC`,
+  ).all(...params) as any[];
+  return rows.map(r => ({
+    id: r.id, email: r.email, emailVerified: !!r.email_verified, approved: !!r.approved, createdAt: r.created_at,
+    firstName: r.first_name ?? '', lastName: r.last_name ?? '', phone: r.phone ?? '',
+    agent: r.assigned_agent_id ? { id: r.assigned_agent_id, email: r.agent_email, firstName: r.agent_first ?? '', lastName: r.agent_last ?? '' } : null,
+  }));
+}
+
+/** Liste des agents CPI (pour l'attribution). */
+export function listAgents() {
+  const rows = db.prepare(
+    `SELECT u.id, u.email, p.first_name, p.last_name,
+            (SELECT COUNT(*) FROM users c WHERE c.assigned_agent_id = u.id) AS clients
+     FROM users u LEFT JOIN profiles p ON p.user_id = u.id
+     WHERE u.role = 'AGENT_CPI' ORDER BY p.first_name, u.email`,
+  ).all() as any[];
+  return rows.map(r => ({ id: r.id, email: r.email, firstName: r.first_name ?? '', lastName: r.last_name ?? '', clients: r.clients }));
+}
+
+/** Valide un compte client ET l'attribue à un agent CPI (une seule opération). */
+export function approveAndAssign(admin: AuthUser, clientId: string, agentId: string) {
+  const client = db.prepare("SELECT id, role, approved, email FROM users WHERE id = ?").get(clientId) as { id: string; role: string; approved: number; email: string } | undefined;
+  if (!client || client.role !== 'CLIENT') throw notFound('Client introuvable.');
+  const agent = db.prepare("SELECT id, role FROM users WHERE id = ?").get(agentId) as { id: string; role: string } | undefined;
+  if (!agent || agent.role !== 'AGENT_CPI') throw badRequest('Agent CPI invalide.', 'invalid_agent');
+  if (client.approved) throw conflict('Ce compte est déjà validé.', 'already_approved');
+
+  const t = now();
+  db.transaction(() => {
+    db.prepare(
+      'UPDATE users SET approved = 1, approved_at = ?, approved_by = ?, assigned_agent_id = ?, assigned_at = ?, updated_at = ? WHERE id = ?',
+    ).run(t, admin.id, agentId, t, t, clientId);
+  })();
+
+  logActivity({ actorId: admin.id, actorRole: admin.role, action: 'account_approved', entityType: 'user', entityId: clientId });
+  logActivity({ actorId: admin.id, actorRole: admin.role, action: 'agent_assigned', entityType: 'user', entityId: clientId, meta: { agentId } });
+  notify(clientId, 'account_approved', 'Compte validé', 'Votre compte a été validé. Vous pouvez désormais accéder à votre espace et déposer vos pièces.');
+  notify(agentId, 'client_assigned', 'Nouveau client attribué', 'Un client vient de vous être attribué par l\'administrateur.');
+  return { clientId, agentId };
+}
+
+/** Journal d'activité global (traçabilité admin). */
+export function activityLog(limit = 200) {
+  return db.prepare(
+    `SELECT al.action, al.actor_role, al.entity_type, al.entity_id, al.meta, al.created_at, u.email AS actor
+     FROM activity_logs al LEFT JOIN users u ON u.id = al.actor_id
+     ORDER BY al.created_at DESC LIMIT ?`,
+  ).all(limit);
 }
