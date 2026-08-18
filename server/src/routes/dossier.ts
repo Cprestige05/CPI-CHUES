@@ -4,7 +4,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { requireClient, requireApproved } from '../middleware/rbac.js';
 import { profileSchema } from '../validation/schemas.js';
 import {
-  ensureDossier, getProfile, updateProfile, listDocuments, completeness, submitDossier, requirements,
+  ensureDossier, getProfile, updateProfile, listDocuments, completeness, submitDossier, requirements, getAssignedAgent,
 } from '../services/dossier.js';
 
 export const dossierRouter = Router();
@@ -19,6 +19,7 @@ dossierRouter.get('/', ah(async (req, res) => {
     requirements: requirements(),
     documents: listDocuments(dossier.id),
     completeness: completeness(dossier.id),
+    assignedAgent: getAssignedAgent(req.user!.id),
   });
 }));
 

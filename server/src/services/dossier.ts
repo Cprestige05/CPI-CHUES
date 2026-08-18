@@ -51,6 +51,18 @@ export const getDossier = (userId: string): Dossier | undefined =>
 export function getProfile(userId: string) {
   return db.prepare('SELECT first_name, last_name, phone, employer, address, city FROM profiles WHERE user_id = ?').get(userId);
 }
+
+/** Conseiller CPI attribué au client (ou null si en attente d'affectation). */
+export function getAssignedAgent(userId: string) {
+  const row = db.prepare(
+    `SELECT ag.id, ag.email, agp.first_name, agp.last_name
+     FROM users u LEFT JOIN users ag ON ag.id = u.assigned_agent_id
+     LEFT JOIN profiles agp ON agp.user_id = u.assigned_agent_id
+     WHERE u.id = ? AND u.assigned_agent_id IS NOT NULL`,
+  ).get(userId) as { id: string; email: string; first_name: string; last_name: string } | undefined;
+  if (!row) return null;
+  return { id: row.id, email: row.email, firstName: row.first_name ?? '', lastName: row.last_name ?? '' };
+}
 export function updateProfile(userId: string, patch: Record<string, string>) {
   const allowed = ['first_name', 'last_name', 'phone', 'employer', 'address', 'city'] as const;
   const sets: string[] = [];
