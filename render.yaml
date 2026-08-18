@@ -28,4 +28,8 @@ services:
         sync: false
       - key: BOOTSTRAP_ADMIN_PASSWORD
         sync: false
+      # Crée 2 agents de démo (agent1@cpi-chues.sn / agent2@cpi-chues.sn, mdp AgentDemo2026)
+      # pour tester l'attribution + la vue agent sans Shell. Mettez "false" pour désactiver.
+      - key: BOOTSTRAP_DEMO_AGENTS
+        value: "true"
       # Pour de vrais e-mails, ajoutez : SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM
