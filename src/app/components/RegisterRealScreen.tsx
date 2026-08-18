@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../data/authContext';
 import { ApiError, errorMessage } from '../data/apiClient';
-import type { AppPage } from '../App';
+import type { AppPage } from '../types';
 
 const PRIMARY = '#5D1615';
 const BLUE = '#1400ff';

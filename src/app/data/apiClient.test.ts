@@ -14,7 +14,7 @@ type FakeRes = {
 };
 
 function mockFetch(res: FakeRes | (() => never)) {
-  const f = vi.fn(async () => {
+  const f = vi.fn(async (_url: string, _init?: RequestInit): Promise<Response> => {
     if (typeof res === 'function') return res(); // permet de throw (erreur réseau)
     return {
       ok: res.ok,

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { api, ApiError } from './apiClient';
-import type { UserRole } from '../App';
+import type { UserRole } from '../types';
 
 // Rôles backend → rôles front (dashboards existants).
 type BackendRole = 'CLIENT' | 'AGENT_CPI' | 'ADMIN';

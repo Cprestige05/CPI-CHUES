@@ -4,18 +4,10 @@ import AppShell from './components/AppShell';
 import { AuthProvider, useAuth } from './data/authContext';
 import { VerifyEmailScreen, ForgotPasswordScreen, ResetPasswordScreen } from './components/AuthTokenScreens';
 
-export type UserRole = 'user' | 'commercial' | 'admin';
-
-export interface AuthUser {
-  role: UserRole;
-  name: string;
-  email?: string;
-  memberNumber?: string;
-}
-
-export type AppPage =
-  | 'welcome' | 'login' | 'register' | 'chues-register'
-  | 'dashboard' | 'forgot' | 'verify-email' | 'reset-password';
+// Types partagés déplacés dans ./types (découplage). Importés localement et
+// réexportés ici pour compatibilité avec les imports existants `from '../App'`.
+import type { UserRole, AuthUser, AppPage } from './types';
+export type { UserRole, AuthUser, AppPage };
 
 function Splash() {
   return (

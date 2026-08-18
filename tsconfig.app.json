@@ -1,0 +1,38 @@
+{
+  "//": "Typecheck CIBLÉ du code applicatif ACTIF de la Phase 3 (intégration API, auth, inscription, pages Client, pages Agent/Admin, dépôt documentaire, notifications, composants réels ajoutés). Exclut : composants de démo morts prouvés, primitives ui/ non utilisées par ce parcours, fichiers de référence collés, dépendances externes (declarations). tsc suit et vérifie aussi tous les imports de ces fichiers.",
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "types": ["node", "vite/client"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": [],
+  "files": [
+    "src/app/types.ts",
+    "src/app/data/apiClient.ts",
+    "src/app/data/apiClient.test.ts",
+    "src/app/data/authContext.tsx",
+    "src/app/contexts/NavigationContext.tsx",
+    "src/app/components/AuthPage.tsx",
+    "src/app/components/AuthTokenScreens.tsx",
+    "src/app/components/RegisterRealScreen.tsx",
+    "src/app/components/MonDossierReal.tsx",
+    "src/app/components/AdminDossiersReal.tsx",
+    "src/app/components/ClientDashboardReal.tsx",
+    "src/app/components/NotificationsReal.tsx",
+    "src/app/components/MonProfilReal.tsx"
+  ]
+}

@@ -22,7 +22,6 @@ const FIELDS: { key: keyof Profile; label: string; apiKey: string; placeholder: 
 ];
 
 export default function MonProfilReal({ user }: { user: SessionUser }) {
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +35,6 @@ export default function MonProfilReal({ user }: { user: SessionUser }) {
     try {
       const r = await api.get('/dossier');
       const p: Profile = r.profile ?? {};
-      setProfile(p);
       const f: Record<string, string> = {};
       for (const fld of FIELDS) f[fld.apiKey] = (p[fld.key] ?? '') as string;
       setForm(f);
@@ -67,8 +65,7 @@ export default function MonProfilReal({ user }: { user: SessionUser }) {
       if (v) patch[fld.apiKey] = v;
     }
     try {
-      const r = await api.patch('/dossier/profile', patch);
-      setProfile(r.profile);
+      await api.patch('/dossier/profile', patch);
       setOk(true);
     } catch (e) {
       if (e instanceof ApiError && e.issues?.length) {

@@ -15,7 +15,6 @@ import { DocStateProvider } from '../data/docStateContext';
 import { CpiDocsProvider } from '../data/cpiDocsContext';
 import { ChantierStateProvider } from '../data/chantierStateContext';
 import ClientPublicDashboard from './ClientPublicDashboard';
-import ClientDashboardHome from './ClientDashboardHome';
 import ReserverParcellePanel from './ReserverParcellePanel';
 import AgentDashboard from './AgentDashboard';
 import AdminDashboard from './AdminDashboard';
@@ -464,9 +463,6 @@ function AppShellInner({ user, onLogout }: AppShellProps) {
                 </div>
               </div>
             </div>
-            {user.memberNumber && (
-              <div className="mt-2 font-mono" style={{ fontSize: '0.6875rem', color: 'var(--muted-foreground)' }}>{user.memberNumber}</div>
-            )}
           </div>
 
           {/* Nav */}
