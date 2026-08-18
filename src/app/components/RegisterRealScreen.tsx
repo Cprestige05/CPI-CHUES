@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../data/authContext';
 import { ApiError, errorMessage } from '../data/apiClient';
 import type { AppPage } from '../types';
+import AuthShell from './AuthShell';
 
 const PRIMARY = '#5D1615';
 const BLUE = '#1400ff';
@@ -82,8 +83,8 @@ export default function RegisterRealScreen({ onNavigate }: { onNavigate: (p: App
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'var(--background)' }}>
-      <div style={{ width: '100%', maxWidth: 460, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: '30px 28px', fontFamily: 'var(--font-sans)' }}>
+    <AuthShell ctaLabel="J'ai déjà un compte" onCta={() => onNavigate('login')}>
+      <div style={{ fontFamily: 'var(--font-sans)' }}>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.6rem', fontWeight: 800, color: 'var(--foreground)', marginBottom: 4 }}>Créer mon compte</h1>
         <p style={{ color: 'var(--muted-foreground)', fontSize: '0.9375rem', marginBottom: 20 }}>Accédez à votre espace personnel CHUES × CPI.</p>
 
@@ -153,6 +154,6 @@ export default function RegisterRealScreen({ onNavigate }: { onNavigate: (p: App
           <button type="button" onClick={() => onNavigate('login')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer' }}>Se connecter</button>
         </p>
       </div>
-    </div>
+    </AuthShell>
   );
 }

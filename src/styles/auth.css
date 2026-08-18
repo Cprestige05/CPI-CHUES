@@ -78,21 +78,14 @@
    SCREEN 1 — WelcomeScreen  (.welcome-split = 55fr / 45fr)
    ========================================================================== */
 @media (min-width: 1200px) {
-  /* Sur grand écran : contenir le split en une carte centrée (évite les grands
-     vides latéraux et l'étirement vertical du plein-écran). */
+  /* Plein écran : le split remplit toute la hauteur restante (pas de carte
+     flottante), contenus centrés verticalement — aucune zone vide. */
   .welcome-split {
-    flex: 0 0 auto !important;
-    max-width: 1280px;
-    width: calc(100% - 80px);
-    margin: 36px auto 48px;
-    border-radius: 28px;
-    overflow: hidden;
-    box-shadow: 0 24px 70px rgba(20, 0, 70, 0.13);
-    align-self: center;
+    /* La ligne du grid remplit le conteneur → les 2 colonnes s'étirent en pleine
+       hauteur (le fond marine gauche et le panneau droit couvrent tout). */
+    grid-template-rows: minmax(min-content, 1fr) !important;
   }
-  /* Contenu du héros packé en haut (supprime le grand gap central). */
-  .welcome-visual { justify-content: flex-start !important; }
-  /* Formulaire centré verticalement + horizontalement dans son panneau. */
+  .welcome-visual { justify-content: center !important; }
   .welcome-form-panel { display: flex !important; align-items: center; }
   .welcome-form-inner { max-width: 420px !important; margin: 0 auto; }
 }
@@ -131,20 +124,9 @@
    SCREENS 2 & 3 — Login / Register  (.auth-split = 1fr / 1fr)
    ========================================================================== */
 @media (min-width: 1200px) {
-  /* Contenir Connexion / Inscription en une carte centrée (comme l'accueil) :
-     supprime l'étirement plein-écran et les grands vides verticaux. */
-  .auth-split {
-    min-height: 0 !important;
-    max-width: 1200px;
-    width: calc(100% - 80px);
-    margin: 40px auto !important;
-    border-radius: 28px;
-    overflow: hidden;
-    box-shadow: 0 24px 70px rgba(20, 0, 70, 0.13);
-  }
-  /* Contenu des panneaux marketing (bleu/bordeaux) centré verticalement. */
-  .auth-split-visual { min-height: 0 !important; justify-content: center !important; gap: 44px; }
-  .auth-form-panel { min-height: 0 !important; }
+  /* Plein écran : Connexion / Inscription remplissent toute la hauteur,
+     panneau marketing centré verticalement — aucune zone vide. */
+  .auth-split-visual { justify-content: center !important; gap: 44px; }
 }
 @media (max-width: 860px) {
   .auth-split { grid-template-columns: 1fr !important; }
