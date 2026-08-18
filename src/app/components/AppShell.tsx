@@ -20,8 +20,8 @@ import AgentDashboard from './AgentDashboard';
 import AdminDashboard from './AdminDashboard';
 import StatisticsDashboard from './StatisticsDashboard';
 import MonDossierPage from './MonDossierPage';
-import MonDossierReal from './MonDossierReal';
 import MonDossierSuivi from './MonDossierSuivi';
+import MaDemandeReal from './MaDemandeReal';
 import AdminDossiersReal from './AdminDossiersReal';
 import AdminAccountsReal from './AdminAccountsReal';
 import ClientDashboardReal from './ClientDashboardReal';
@@ -416,7 +416,7 @@ function AppShellInner({ user, onLogout }: AppShellProps) {
     if (user.role === 'user') {
       if (activeNav === 'dashboard')                                 return <ClientDashboardReal user={user} />;
       if (activeNav === 'mon-dossier') return <MonDossierSuivi user={user} />;
-      if (activeNav === 'ma-demande')  return <MonDossierReal user={user} />;
+      if (activeNav === 'ma-demande')  return <MaDemandeReal />;
       if (activeNav === 'notifications')                            return <NotificationsReal />;
       if (activeNav === 'mon-profil')                              return <MonProfilReal user={user} />;
     }
