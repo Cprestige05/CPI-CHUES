@@ -32,6 +32,7 @@
     "src/app/components/RegisterRealScreen.tsx",
     "src/app/components/PendingApprovalScreen.tsx",
     "src/app/components/MonDossierReal.tsx",
+    "src/app/components/MonDossierSuivi.tsx",
     "src/app/components/AdminDossiersReal.tsx",
     "src/app/components/AdminAccountsReal.tsx",
     "src/app/components/ClientDashboardReal.tsx",

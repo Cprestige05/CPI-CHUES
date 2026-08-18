@@ -21,6 +21,7 @@ import AdminDashboard from './AdminDashboard';
 import StatisticsDashboard from './StatisticsDashboard';
 import MonDossierPage from './MonDossierPage';
 import MonDossierReal from './MonDossierReal';
+import MonDossierSuivi from './MonDossierSuivi';
 import AdminDossiersReal from './AdminDossiersReal';
 import AdminAccountsReal from './AdminAccountsReal';
 import ClientDashboardReal from './ClientDashboardReal';
@@ -414,7 +415,8 @@ function AppShellInner({ user, onLogout }: AppShellProps) {
     // Pages client réelles (branchées sur le backend :8787).
     if (user.role === 'user') {
       if (activeNav === 'dashboard')                                 return <ClientDashboardReal user={user} />;
-      if (activeNav === 'mon-dossier' || activeNav === 'ma-demande') return <MonDossierReal user={user} />;
+      if (activeNav === 'mon-dossier') return <MonDossierSuivi user={user} />;
+      if (activeNav === 'ma-demande')  return <MonDossierReal user={user} />;
       if (activeNav === 'notifications')                            return <NotificationsReal />;
       if (activeNav === 'mon-profil')                              return <MonProfilReal user={user} />;
     }
