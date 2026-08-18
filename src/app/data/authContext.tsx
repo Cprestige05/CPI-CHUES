@@ -12,6 +12,8 @@ export interface SessionUser {
   role: UserRole;         // rôle front (user | commercial | admin)
   name: string;           // affichage (dérivé de l'e-mail par défaut ; profil chargé ailleurs)
   emailVerified: boolean;
+  approved: boolean;      // compte validé par l'admin (le personnel l'est d'office)
+  assignedAgentId: string | null;
 }
 
 export type SessionStatus = 'loading' | 'authenticated' | 'unauthenticated';
@@ -36,8 +38,12 @@ export interface RegisterInput {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function toSessionUser(u: { id: string; email: string; role: BackendRole; emailVerified: boolean }): SessionUser {
-  return { id: u.id, email: u.email, role: ROLE_MAP[u.role] ?? 'user', name: u.email.split('@')[0], emailVerified: u.emailVerified };
+function toSessionUser(u: { id: string; email: string; role: BackendRole; name?: string; emailVerified: boolean; approved?: boolean; assignedAgentId?: string | null }): SessionUser {
+  return {
+    id: u.id, email: u.email, role: ROLE_MAP[u.role] ?? 'user',
+    name: (u.name && u.name.trim()) || u.email.split('@')[0],
+    emailVerified: u.emailVerified, approved: u.approved ?? false, assignedAgentId: u.assignedAgentId ?? null,
+  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

@@ -3,6 +3,7 @@ import AuthPage from './components/AuthPage';
 import AppShell from './components/AppShell';
 import { AuthProvider, useAuth } from './data/authContext';
 import { VerifyEmailScreen, ForgotPasswordScreen, ResetPasswordScreen } from './components/AuthTokenScreens';
+import PendingApprovalScreen from './components/PendingApprovalScreen';
 
 // Types partagés déplacés dans ./types (découplage). Importés localement et
 // réexportés ici pour compatibilité avec les imports existants `from '../App'`.
@@ -47,6 +48,10 @@ function AppInner() {
   if (status === 'loading') return <Splash />;
 
   if (status === 'authenticated' && user) {
+    // Client dont le compte n'est pas encore validé par l'admin → écran d'attente.
+    if (user.role === 'user' && !user.approved) {
+      return <PendingApprovalScreen email={user.email} />;
+    }
     return <AppShell user={user} onLogout={() => void logout()} />;
   }
 

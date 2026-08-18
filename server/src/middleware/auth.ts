@@ -43,18 +43,21 @@ export function attachUser(req: Request, _res: Response, next: NextFunction): vo
   const row = db
     .prepare(
       `SELECT u.id AS id, u.email AS email, u.role AS role, u.email_verified AS ev,
-              u.approved AS approved, u.assigned_agent_id AS agent, s.expires_at AS exp
+              u.approved AS approved, u.assigned_agent_id AS agent, s.expires_at AS exp,
+              TRIM(COALESCE(p.first_name,'') || ' ' || COALESCE(p.last_name,'')) AS name
        FROM sessions s JOIN users u ON u.id = s.user_id
+       LEFT JOIN profiles p ON p.user_id = u.id
        WHERE s.token_hash = ?`,
     )
-    .get(hash) as { id: string; email: string; role: string; ev: number; approved: number; agent: string | null; exp: number } | undefined;
+    .get(hash) as { id: string; email: string; role: string; ev: number; approved: number; agent: string | null; exp: number; name: string } | undefined;
 
   if (!row) return next();
   if (row.exp < now()) {
     db.prepare('DELETE FROM sessions WHERE token_hash = ?').run(hash); // session expirée → purge
     return next();
   }
-  req.user = { id: row.id, email: row.email, role: row.role as any, emailVerified: !!row.ev, approved: !!row.approved, assignedAgentId: row.agent };
+  const name = (row.name || '').trim() || row.email.split('@')[0];
+  req.user = { id: row.id, email: row.email, role: row.role as any, name, emailVerified: !!row.ev, approved: !!row.approved, assignedAgentId: row.agent };
   next();
 }
 

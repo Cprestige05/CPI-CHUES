@@ -3,7 +3,7 @@ import { ah, unauthorized } from '../middleware/error.js';
 import { createSession, destroySession, requireAuth } from '../middleware/auth.js';
 import { loginRateLimit, recordLoginFailure, resetLoginAttempts } from '../middleware/rateLimit.js';
 import { registerSchema, loginSchema, emailTokenSchema, requestResetSchema, resetPasswordSchema } from '../validation/schemas.js';
-import { registerClient, verifyCredentials, verifyEmailToken, requestPasswordReset, resetPassword } from '../services/auth.js';
+import { registerClient, verifyCredentials, verifyEmailToken, requestPasswordReset, resetPassword, displayName } from '../services/auth.js';
 
 export const authRouter = Router();
 
@@ -32,7 +32,7 @@ authRouter.post('/login', loginRateLimit, ah(async (req, res) => {
   }
   resetLoginAttempts(email, ip);
   createSession(res, user.id, ip, String(req.headers['user-agent'] ?? ''));
-  res.json({ ok: true, user: { id: user.id, email: user.email, role: user.role, emailVerified: !!user.email_verified, approved: !!user.approved, assignedAgentId: user.assigned_agent_id ?? null } });
+  res.json({ ok: true, user: { id: user.id, email: user.email, role: user.role, name: displayName(user.id, user.email), emailVerified: !!user.email_verified, approved: !!user.approved, assignedAgentId: user.assigned_agent_id ?? null } });
 }));
 
 // Session courante.

@@ -19,6 +19,13 @@ export interface UserRow {
 export const findByEmail = (email: string): UserRow | undefined =>
   db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase()) as UserRow | undefined;
 
+/** Nom affiché : « prénom nom » du profil, sinon préfixe de l'e-mail. */
+export function displayName(userId: string, email: string): string {
+  const p = db.prepare('SELECT first_name, last_name FROM profiles WHERE user_id = ?').get(userId) as { first_name: string; last_name: string } | undefined;
+  const name = `${p?.first_name ?? ''} ${p?.last_name ?? ''}`.trim();
+  return name || email.split('@')[0];
+}
+
 /**
  * Inscription publique. Le rôle est TOUJOURS `CLIENT` — jamais lu depuis le payload.
  * Détecte les doublons e-mail et téléphone. Envoie un jeton de vérification (adaptateur dev).
