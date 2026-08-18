@@ -16,9 +16,12 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
 
-# 2) Backend : dépendances (compile better-sqlite3)
+# 2) Backend : dépendances (compile better-sqlite3).
+# --ignore-workspace : le serveur a son propre lockfile et n'est PAS membre du
+# workspace racine ; sans ce flag, pnpm n'installe rien dans server/node_modules
+# (tsx introuvable au démarrage). --prod=false garantit tsx (devDependency).
 WORKDIR /app/server
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-workspace --prod=false
 
 # Configuration de production (démo). Montez un disque sur /data pour la persistance.
 ENV NODE_ENV=production \
