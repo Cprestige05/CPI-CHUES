@@ -1,19 +1,18 @@
 # Blueprint Render — déploiement mono-service (Docker) du portail « Mon Espace ».
-# Sur Render : New → Blueprint → sélectionnez ce dépôt. Le disque /data (persistant)
-# nécessite un plan payant ; en plan gratuit la base est éphémère (réinitialisée à
-# chaque redéploiement) — voir DEPLOY-DEMO.md.
+# Sur Render : New → Blueprint → sélectionnez ce dépôt.
+# PLAN GRATUIT (free) : aucune carte requise. La base est ÉPHÉMÈRE (remise à zéro
+# à chaque redémarrage/redéploiement, et le service s'endort après ~15 min
+# d'inactivité). L'admin est RECRÉÉ automatiquement au démarrage via le bootstrap,
+# donc la démo reste fonctionnelle. Pour des données persistantes, passez en
+# 'starter' (payant) et ajoutez un bloc `disk` monté sur /data.
 services:
   - type: web
     name: cpi-chues-portail
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter          # 'starter' = disque persistant ; 'free' = éphémère (retirez le bloc disk)
+    plan: free
     healthCheckPath: /api/health
     autoDeploy: true
-    disk:
-      name: data
-      mountPath: /data
-      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
