@@ -3,7 +3,7 @@ import {
   Building2, LayoutDashboard, FileText, Bell, UserCircle,
   LogOut, ChevronRight, Menu, X, Users,
   BarChart3, ShieldCheck, CreditCard, BookOpen, FolderOpen, HardHat, LifeBuoy,
-  Phone, Mail, Banknote, ScrollText, History, Settings, MessageSquare, MapPin,
+  Phone, Mail, Banknote, ScrollText, History, Settings, MessageSquare, MapPin, UserCheck,
 } from 'lucide-react';
 import cpiLogo from '../../imports/image.png';
 import type { UserRole } from '../App';
@@ -22,6 +22,7 @@ import StatisticsDashboard from './StatisticsDashboard';
 import MonDossierPage from './MonDossierPage';
 import MonDossierReal from './MonDossierReal';
 import AdminDossiersReal from './AdminDossiersReal';
+import AdminAccountsReal from './AdminAccountsReal';
 import ClientDashboardReal from './ClientDashboardReal';
 import NotificationsReal from './NotificationsReal';
 import MonProfilReal from './MonProfilReal';
@@ -75,7 +76,8 @@ function getNavItems(role: UserRole): NavItem[] {
   ];
   if (role === 'admin') return [
     { id: 'dashboard',          label: 'Vue globale',        icon: LayoutDashboard },
-    { id: 'demandes',           label: 'Toutes les demandes',icon: FileText        },
+    { id: 'comptes',            label: 'Validation comptes', icon: UserCheck       },
+    { id: 'demandes',           label: 'Dossiers soumis',    icon: FileText        },
     { id: 'utilisateurs',       label: 'Utilisateurs',       icon: Users           },
     { id: 'partenaires',        label: 'Partenaires',        icon: Building2       },
     { id: 'documents-clients',  label: 'Documents clients',  icon: FolderOpen      },
@@ -427,6 +429,10 @@ function AppShellInner({ user, onLogout }: AppShellProps) {
     if (user.role === 'user') {
       if (activeNav === 'parcelles') return <ReserverParcellePanel user={user} />;
       return <ClientPublicDashboard user={user} />;
+    }
+    // Validation des comptes + attribution d'agent (Admin uniquement).
+    if (user.role === 'admin' && activeNav === 'comptes') {
+      return <AdminAccountsReal />;
     }
     // Revue documentaire réelle (backend) : vue principale Agent/Admin.
     if ((user.role === 'commercial' || user.role === 'admin') && (activeNav === 'dashboard' || activeNav === 'demandes' || activeNav === 'dossiers')) {
