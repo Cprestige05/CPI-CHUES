@@ -2,6 +2,7 @@ import { createApp } from './app.js';
 import { env } from './env.js';
 import { runMigrations } from './db/migrate.js';
 import { mailer } from './lib/mailer.js';
+import { bootstrapAdmin } from './lib/bootstrap.js';
 
 // SÉCURITÉ : refuse de démarrer en production avec l'adaptateur e-mail de développement,
 // SAUF si ALLOW_DEV_MAILER=true (déploiement de DÉMONSTRATION uniquement — l'admin valide
@@ -17,6 +18,9 @@ if (env.isProd && mailer.isDev) {
 // Applique les migrations au démarrage puis lance le serveur sur le port 8787.
 const applied = runMigrations();
 if (applied > 0) console.log(`[startup] ${applied} migration(s) appliquée(s).`);
+
+// Admin de démarrage optionnel (variables d'env) — utile sans accès Shell.
+await bootstrapAdmin();
 
 const app = createApp();
 app.listen(env.PORT, () => {

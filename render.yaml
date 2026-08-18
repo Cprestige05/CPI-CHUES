@@ -23,4 +23,10 @@ services:
         value: /data/app.db
       - key: STORAGE_DIR
         value: /data/documents
+      # Admin créé au 1er démarrage (Render vous demandera ces 2 valeurs).
+      # Aucun accès Shell requis. Choisissez un mot de passe fort (≥ 8 car.).
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
       # Pour de vrais e-mails, ajoutez : SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM
