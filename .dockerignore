@@ -1,0 +1,8 @@
+**/node_modules
+dist
+.git
+.claude
+server/data
+server/storage/documents
+**/*.log
+*.zip

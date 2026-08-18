@@ -47,6 +47,12 @@ export const env = {
   SMTP_USER: process.env.SMTP_USER ?? '',
   SMTP_PASS: process.env.SMTP_PASS ?? '',
   MAIL_FROM: process.env.MAIL_FROM ?? 'CPI × CHUES <no-reply@cpi-chues.sn>',
+
+  // Déploiement mono-service : si ce dossier existe, le backend sert le frontend
+  // compilé (SPA) — une seule URL pour tout. Par défaut, le `dist/` à la racine.
+  FRONTEND_DIST: resolve(SERVER_ROOT, '..', process.env.FRONTEND_DIST ?? 'dist'),
+  // Autorise le démarrage en production sans SMTP (démo). À NE PAS utiliser en vrai prod.
+  ALLOW_DEV_MAILER: (process.env.ALLOW_DEV_MAILER ?? '').toLowerCase() === 'true',
 } as const;
 
 /** Première origine autorisée (pour construire les liens des e-mails). */

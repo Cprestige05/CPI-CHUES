@@ -1,5 +1,7 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { env } from './env.js';
 import { attachUser } from './middleware/auth.js';
 import { errorHandler } from './middleware/error.js';
@@ -43,6 +45,14 @@ export function createApp() {
   app.use('/api/documents', documentsRouter);
   app.use('/api/admin', adminRouter);
   app.use('/api/notifications', notificationsRouter);
+
+  // ─── Déploiement mono-service : sert le frontend compilé (SPA) ───────────────
+  // Une seule URL sert l'API (/api/*) ET l'application ; les appels front vers /api
+  // sont donc same-origin (ni CORS ni proxy nécessaires).
+  if (existsSync(env.FRONTEND_DIST)) {
+    app.use(express.static(env.FRONTEND_DIST));
+    app.get(/^(?!\/api\/).*/, (_req, res) => res.sendFile(join(env.FRONTEND_DIST, 'index.html')));
+  }
 
   app.use(errorHandler);
   return app;

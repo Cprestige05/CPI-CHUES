@@ -20,5 +20,11 @@ export function csrfOriginGuard(req: Request, _res: Response, next: NextFunction
   const origin = req.headers.origin;
   if (!origin) return next();
   if (allowedOrigins.has(origin)) return next();
+  // Same-origin (front servi par le backend) : l'Origin correspond à l'hôte de la
+  // requête → ce n'est PAS une requête cross-site, donc autorisé sans configuration.
+  try {
+    const host = req.headers.host;
+    if (host && new URL(origin).host === host) return next();
+  } catch { /* origin malformé → refus */ }
   next(forbidden('Origine non autorisée.'));
 }

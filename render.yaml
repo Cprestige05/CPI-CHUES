@@ -1,0 +1,26 @@
+# Blueprint Render — déploiement mono-service (Docker) du portail « Mon Espace ».
+# Sur Render : New → Blueprint → sélectionnez ce dépôt. Le disque /data (persistant)
+# nécessite un plan payant ; en plan gratuit la base est éphémère (réinitialisée à
+# chaque redéploiement) — voir DEPLOY-DEMO.md.
+services:
+  - type: web
+    name: cpi-chues-portail
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter          # 'starter' = disque persistant ; 'free' = éphémère (retirez le bloc disk)
+    healthCheckPath: /api/health
+    autoDeploy: true
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ALLOW_DEV_MAILER   # démo sans SMTP (l'admin valide les comptes). Retirez si vous configurez le SMTP.
+        value: "true"
+      - key: DATABASE_FILE
+        value: /data/app.db
+      - key: STORAGE_DIR
+        value: /data/documents
+      # Pour de vrais e-mails, ajoutez : SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM
