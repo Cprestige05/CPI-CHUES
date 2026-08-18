@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, MailCheck, Clock, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../data/authContext';
 import { ApiError, errorMessage } from '../data/apiClient';
 import type { AppPage } from '../types';
@@ -67,18 +67,39 @@ export default function RegisterRealScreen({ onNavigate }: { onNavigate: (p: App
 
   if (done) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'var(--background)' }}>
-        <div style={{ maxWidth: 440, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: '32px 28px', fontFamily: 'var(--font-sans)', textAlign: 'center' }}>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 800, color: 'var(--foreground)', marginBottom: 12 }}>Compte créé ✅</h1>
+      <AuthShell ctaLabel="J'ai déjà un compte" onCta={() => onNavigate('login')}>
+        <div style={{ fontFamily: 'var(--font-sans)' }}>
+          <div style={{ width: 52, height: 52, borderRadius: 14, background: '#dcfce7', color: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <MailCheck size={26} />
+          </div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', fontWeight: 800, color: 'var(--foreground)', marginBottom: 8 }}>Compte créé ✅</h1>
           <p style={{ color: 'var(--muted-foreground)', lineHeight: 1.6, marginBottom: 20 }}>
-            Un lien de vérification a été généré pour <strong style={{ color: 'var(--foreground)' }}>{form.email.trim().toLowerCase()}</strong>.
-            Vérifiez votre adresse pour activer votre compte, puis connectez-vous.
+            Un e-mail de vérification vient d'être envoyé à <strong style={{ color: 'var(--foreground)' }}>{form.email.trim().toLowerCase()}</strong>.
+            Ouvrez-le et cliquez sur le lien pour vérifier votre adresse.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 22 }}>
+            {[
+              { icon: <MailCheck size={17} />, t: 'Vérifiez votre adresse', s: "Cliquez sur le lien reçu par e-mail." },
+              { icon: <Clock size={17} />, t: 'Validation par un administrateur', s: "Votre compte est ensuite validé et un conseiller vous est attribué." },
+              { icon: <CheckCircle2 size={17} />, t: 'Accès à votre espace', s: 'Vous pourrez déposer vos pièces et suivre votre dossier.' },
+            ].map((x, i) => (
+              <div key={i} style={{ display: 'flex', gap: 11, alignItems: 'flex-start' }}>
+                <span style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--muted, #f3f3f3)', color: PRIMARY, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{x.icon}</span>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--foreground)' }}>{x.t}</div>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)' }}>{x.s}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginBottom: 16 }}>
+            Vous n'avez rien reçu ? Vérifiez vos courriers indésirables (spam).
           </p>
           <button style={{ width: '100%', padding: '13px 18px', borderRadius: 12, border: 'none', background: PRIMARY, color: 'white', fontWeight: 700, cursor: 'pointer' }} onClick={() => onNavigate('login')}>
             Aller à la connexion
           </button>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 

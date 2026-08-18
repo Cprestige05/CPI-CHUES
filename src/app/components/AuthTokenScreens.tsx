@@ -51,12 +51,41 @@ export function VerifyEmailScreen({ token, onDone }: { token: string; onDone: ()
     return () => { alive = false; };
   }, [token, verifyEmail]);
 
+  if (state === 'ok') {
+    // Adresse vérifiée → le compte reste EN ATTENTE de validation par l'admin.
+    return (
+      <Shell title="E-mail vérifié ✅">
+        <div style={okBox}>Votre adresse e-mail a bien été vérifiée.</div>
+        <p style={{ color: 'var(--muted-foreground)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: 16 }}>
+          Votre compte est maintenant <strong style={{ color: 'var(--foreground)' }}>en attente de validation par un administrateur</strong>.
+          Vous pourrez accéder à votre espace dès qu'il aura validé votre compte et vous aura attribué un conseiller CPI.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 18 }}>
+          {[
+            { done: true, t: 'Adresse e-mail vérifiée' },
+            { done: false, t: "Validation du compte par l'administrateur" },
+            { done: false, t: 'Attribution d\'un conseiller CPI' },
+            { done: false, t: 'Accès à votre espace' },
+          ].map((x, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: '0.85rem', color: x.done ? 'var(--foreground)' : 'var(--muted-foreground)' }}>
+              <span style={{ width: 18, height: 18, borderRadius: 999, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: x.done ? '#166534' : 'var(--muted, #e5e5e5)', color: '#fff', fontSize: 11, fontWeight: 800 }}>{x.done ? '✓' : i + 1}</span>
+              {x.t}
+            </div>
+          ))}
+        </div>
+        <button style={primaryBtn} onClick={onDone}>Aller à la connexion</button>
+        <p style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', textAlign: 'center', marginTop: 12 }}>
+          En vous connectant, vous verrez l'état de validation de votre compte.
+        </p>
+      </Shell>
+    );
+  }
+
   return (
     <Shell title="Vérification de l'adresse">
       {state === 'loading' && <p style={{ color: 'var(--muted-foreground)' }}>Vérification en cours…</p>}
-      {state === 'ok' && <div style={okBox}>Votre adresse e-mail a été vérifiée. Vous pouvez vous connecter.</div>}
       {state === 'error' && <div style={errBox}>{msg}</div>}
-      {state !== 'loading' && <button style={primaryBtn} onClick={onDone}>Aller à la connexion</button>}
+      {state === 'error' && <button style={primaryBtn} onClick={onDone}>Aller à la connexion</button>}
     </Shell>
   );
 }

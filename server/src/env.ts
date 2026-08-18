@@ -38,6 +38,18 @@ export const env = {
   RESET_TOKEN_TTL_HOURS: num(process.env.RESET_TOKEN_TTL_HOURS, 2),
   LOGIN_MAX_ATTEMPTS: num(process.env.LOGIN_MAX_ATTEMPTS, 5),
   LOGIN_WINDOW_MINUTES: num(process.env.LOGIN_WINDOW_MINUTES, 15),
+
+  // ─── E-mail (SMTP). Si SMTP_HOST est défini, les e-mails RÉELS sont envoyés ;
+  //     sinon on retombe sur l'adaptateur de développement (aucun envoi réel). ───
+  SMTP_HOST: process.env.SMTP_HOST ?? '',
+  SMTP_PORT: num(process.env.SMTP_PORT, 587),
+  SMTP_SECURE: (process.env.SMTP_SECURE ?? '').toLowerCase() === 'true', // true = TLS implicite (port 465)
+  SMTP_USER: process.env.SMTP_USER ?? '',
+  SMTP_PASS: process.env.SMTP_PASS ?? '',
+  MAIL_FROM: process.env.MAIL_FROM ?? 'CPI × CHUES <no-reply@cpi-chues.sn>',
 } as const;
+
+/** Première origine autorisée (pour construire les liens des e-mails). */
+export const PRIMARY_ORIGIN = env.CLIENT_ORIGIN.split(',')[0].trim();
 
 export const MAX_UPLOAD_BYTES = env.MAX_UPLOAD_MB * 1024 * 1024;
