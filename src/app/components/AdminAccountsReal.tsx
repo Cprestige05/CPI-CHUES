@@ -162,9 +162,14 @@ export default function AdminAccountsReal() {
             {agents.length === 0 ? (
               <div style={{ fontSize: '0.85rem', color: '#92400e', background: '#fef3c7', borderRadius: 8, padding: '10px 12px' }}>Aucun agent CPI enregistré. Créez-en un (CLI create-agent) avant de valider.</div>
             ) : (
-              <select value={chosenAgent} onChange={e => setChosenAgent(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--background)', color: 'var(--foreground)', fontSize: '0.9rem' }}>
-                {agents.map(ag => <option key={ag.id} value={ag.id}>{agentName(ag)} — {ag.clients} client(s)</option>)}
-              </select>
+              <>
+                <select value={chosenAgent} onChange={e => setChosenAgent(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--background)', color: 'var(--foreground)', fontSize: '0.9rem' }}>
+                  {agents.map((ag, i) => <option key={ag.id} value={ag.id}>{agentName(ag)} — {ag.clients} client(s){i === 0 ? ' · recommandé (moins chargé)' : ''}</option>)}
+                </select>
+                <p style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)', marginTop: 6 }}>
+                  L'agent le <strong>moins chargé</strong> est proposé par défaut ({agentName(agents[0])} — {agents[0].clients} client{agents[0].clients > 1 ? 's' : ''}).
+                </p>
+              </>
             )}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
               <button onClick={() => setModal(null)} style={ghost}>Annuler</button>

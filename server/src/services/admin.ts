@@ -177,11 +177,13 @@ export function listAccounts(filter: { status?: 'pending' | 'approved'; q?: stri
 
 /** Liste des agents CPI (pour l'attribution). */
 export function listAgents() {
+  // Trié par charge CROISSANTE : l'agent le moins chargé apparaît en premier
+  // (proposé par défaut à l'attribution), puis par nom.
   const rows = db.prepare(
     `SELECT u.id, u.email, p.first_name, p.last_name,
             (SELECT COUNT(*) FROM users c WHERE c.assigned_agent_id = u.id) AS clients
      FROM users u LEFT JOIN profiles p ON p.user_id = u.id
-     WHERE u.role = 'AGENT_CPI' ORDER BY p.first_name, u.email`,
+     WHERE u.role = 'AGENT_CPI' ORDER BY clients ASC, p.first_name, u.email`,
   ).all() as any[];
   return rows.map(r => ({ id: r.id, email: r.email, firstName: r.first_name ?? '', lastName: r.last_name ?? '', clients: r.clients }));
 }
