@@ -189,19 +189,6 @@ export default function MaDemandeReal() {
       </Section>
       </div>
 
-      {/* Prêt à envoyer */}
-      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-        <div>
-          <div style={{ fontWeight: 800, color: 'var(--foreground)' }}>{sent ? 'Demande envoyée ✅' : 'Prêt à envoyer votre demande ?'}</div>
-          <div style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-            {sent ? 'Votre conseiller étudie votre dossier.' : <><AlertTriangle size={13} /> {!projectReady ? (hasParcelles ? 'Renseignez le montant demandé.' : "Renseignez le montant, la commune et l'adresse du projet.") : !allDeposited ? `Déposez les ${CATS.reduce((n, c) => n + c.count, 0)} pièces requises ci-dessous.` : 'Tout est prêt — vous pouvez envoyer.'}</>}
-          </div>
-        </div>
-        <button onClick={() => void send()} disabled={!canSend || submitting} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: canSend ? PRIMARY : 'var(--muted, #e5e5e5)', color: canSend ? '#fff' : 'var(--muted-foreground)', border: 'none', borderRadius: 10, padding: '12px 20px', fontWeight: 700, cursor: canSend && !submitting ? 'pointer' : 'default' }}>
-          {submitting ? <Loader2 size={16} className="spin" /> : <Send size={16} />} Envoyer ma demande
-        </button>
-      </div>
-
       {/* Documents requis — dépôt réel */}
       <Section icon={<FolderOpen size={18} />} title="Documents requis" sub="Déposez ici les pièces nécessaires — votre conseiller les vérifie une à une (suivi dans « Mon dossier »).">
         {CATS.map(c => {
@@ -224,6 +211,19 @@ export default function MaDemandeReal() {
           );
         })}
       </Section>
+
+      {/* Prêt à envoyer — après les documents requis */}
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontWeight: 800, color: 'var(--foreground)' }}>{sent ? 'Demande envoyée ✅' : 'Prêt à envoyer votre demande ?'}</div>
+          <div style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+            {sent ? 'Votre conseiller étudie votre dossier.' : <><AlertTriangle size={13} /> {!projectReady ? (hasParcelles ? 'Renseignez le montant demandé.' : "Renseignez le montant, la commune et l'adresse du projet.") : !allDeposited ? `Déposez les ${CATS.reduce((n, c) => n + c.count, 0)} pièces requises ci-dessus.` : 'Tout est prêt — vous pouvez envoyer.'}</>}
+          </div>
+        </div>
+        <button onClick={() => void send()} disabled={!canSend || submitting} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: canSend ? PRIMARY : 'var(--muted, #e5e5e5)', color: canSend ? '#fff' : 'var(--muted-foreground)', border: 'none', borderRadius: 10, padding: '12px 20px', fontWeight: 700, cursor: canSend && !submitting ? 'pointer' : 'default' }}>
+          {submitting ? <Loader2 size={16} className="spin" /> : <Send size={16} />} Envoyer ma demande
+        </button>
+      </div>
 
       {/* Résumé + historique */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
