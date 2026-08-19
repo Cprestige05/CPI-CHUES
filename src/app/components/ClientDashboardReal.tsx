@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
-  FolderOpen, FileText, ClipboardList, CreditCard, LifeBuoy, ArrowUpRight,
-  CheckCircle2, Clock, AlertTriangle, Inbox, UserPlus, Bell, Send, ChevronRight,
+  FolderOpen, FileText, ClipboardList, LifeBuoy, ArrowUpRight,
+  CheckCircle2, Clock, AlertTriangle, Inbox, UserPlus, Bell, Send,
   PieChart as PieIcon, Layers, Ruler, Wallet,
 } from 'lucide-react';
 import {
@@ -273,27 +273,8 @@ export default function ClientDashboardReal({ user }: { user: SessionUser }) {
         )}
       </div>
 
-      {/* ── Actions rapides + Activités ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
-        <Card title="Actions rapides" sub="Vos raccourcis du jour" icon={<ClipboardList size={18} />}>
-          {[
-            { icon: <FileText size={17} />, label: 'Transmettre un document', sub: 'Déposer ou remplacer un fichier', to: 'mon-dossier', primary: true },
-            { icon: <ClipboardList size={17} />, label: 'Consulter ma demande', sub: "Voir l'état de votre dossier", to: 'ma-demande' },
-            { icon: <FolderOpen size={17} />, label: 'Ouvrir mon dossier', sub: 'Documents et pièces justificatives', to: 'mon-dossier' },
-            { icon: <CreditCard size={17} />, label: 'Simuler mon prêt', sub: "Tableau d'amortissement complet", to: 'simulateur' },
-            { icon: <LifeBuoy size={17} />, label: 'Contacter mon conseiller', sub: 'Support CPI Immobilier', to: 'support' },
-          ].map(a => (
-            <button key={a.label} onClick={() => navigate(a.to)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', padding: '12px 8px', background: 'transparent', border: 'none', borderTop: '1px solid var(--border)', cursor: 'pointer' }}>
-              <span style={{ width: 34, height: 34, borderRadius: 9, background: a.primary ? 'var(--chues-primary-soft, #fbeef0)' : 'var(--muted, #f1f1f1)', color: a.primary ? PRIMARY : 'var(--muted-foreground)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{a.icon}</span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: 'block', fontWeight: 700, fontSize: '0.9rem', color: a.primary ? PRIMARY : 'var(--foreground)' }}>{a.label}</span>
-                <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--muted-foreground)' }}>{a.sub}</span>
-              </span>
-              <ChevronRight size={16} style={{ color: 'var(--muted-foreground)' }} />
-            </button>
-          ))}
-        </Card>
-
+      {/* ── Dernières activités ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 14 }}>
         <Card title="Dernières activités" sub={`${data.activities.length} récente${data.activities.length > 1 ? 's' : ''}`} icon={<Bell size={18} />}>
           {data.activities.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '28px 10px', color: 'var(--muted-foreground)' }}>
