@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import {
-  Building2, MapPin, FolderOpen, Send, ClipboardList, History, CreditCard, Clock,
-  CheckCircle2, AlertTriangle, Loader2, RefreshCw, Layers, X,
+  Building2, MapPin, FolderOpen, Send, Clock,
+  CheckCircle2, AlertTriangle, Loader2, Layers, X,
 } from 'lucide-react';
 import { api, errorMessage, ApiError } from '../data/apiClient';
 import ParcelleCatalogue, { type Lot } from './ParcelleCatalogue';
@@ -144,11 +144,12 @@ export default function MaDemandeReal() {
       {/* Catalogue des parcelles — en haut de la demande */}
       {!sent && <ParcelleCatalogue onConfirm={onParcellesConfirm} />}
 
-      {/* Projet immobilier (formulaire local) */}
-      <div ref={projetRef} style={{ scrollMarginTop: 12 }}>
-      <Section icon={<Building2 size={18} />} title="Projet immobilier">
+      {/* Formulaire unique de la demande : projet + documents + envoi */}
+      <div ref={projetRef} style={{ scrollMarginTop: 12, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: 18 }}>
+        {/* — Projet immobilier — */}
+        <SubHead icon={<Building2 size={18} />} title="Projet immobilier" />
         {parcelles.length > 0 && (
-          <div style={{ background: 'var(--chues-primary-soft, #fbeef0)', border: `1px solid ${PRIMARY}22`, borderRadius: 12, padding: 12, marginBottom: 6 }}>
+          <div style={{ background: 'var(--chues-primary-soft, #fbeef0)', border: `1px solid ${PRIMARY}22`, borderRadius: 12, padding: 12, margin: '12px 0 2px' }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em', color: PRIMARY, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}><Layers size={13} /> PARCELLES CHOISIES ({parcelles.length})</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {parcelles.map(p => (
@@ -160,7 +161,7 @@ export default function MaDemandeReal() {
             </div>
           </div>
         )}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, marginTop: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, marginTop: 12 }}>
           <Field label="TYPE DE DEMANDE"><Select value={form.type} onChange={set('type')} options={['Financement immobilier', 'Rachat de crédit', 'Construction']} disabled={sent} /></Field>
           <Field label="NATURE DU PROJET"><Select value={form.nature} onChange={set('nature')} options={['Acquisition immobilière', 'Construction', 'Rénovation']} disabled={sent} /></Field>
         </div>
@@ -186,11 +187,10 @@ export default function MaDemandeReal() {
         <Field label="DESCRIPTION DU PROJET" style={{ marginTop: 14 }}>
           <textarea value={form.description} onChange={e => set('description')(e.target.value)} disabled={sent} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
         </Field>
-      </Section>
-      </div>
 
-      {/* Documents requis — dépôt réel */}
-      <Section icon={<FolderOpen size={18} />} title="Documents requis" sub="Déposez ici les pièces nécessaires — votre conseiller les vérifie une à une (suivi dans « Mon dossier »).">
+        {/* — Documents requis — */}
+        <div style={{ borderTop: '1px solid var(--border)', marginTop: 20, paddingTop: 18 }} />
+        <SubHead icon={<FolderOpen size={18} />} title="Documents requis" sub="Déposez ici les pièces nécessaires — votre conseiller les vérifie une à une (suivi dans « Mon dossier »)." />
         {CATS.map(c => {
           const n = filledCount(c.code);
           const complete = n >= c.count;
@@ -210,40 +210,19 @@ export default function MaDemandeReal() {
             </div>
           );
         })}
-      </Section>
 
-      {/* Prêt à envoyer — après les documents requis */}
-      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-        <div>
-          <div style={{ fontWeight: 800, color: 'var(--foreground)' }}>{sent ? 'Demande envoyée ✅' : 'Prêt à envoyer votre demande ?'}</div>
-          <div style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-            {sent ? 'Votre conseiller étudie votre dossier.' : <><AlertTriangle size={13} /> {!projectReady ? (hasParcelles ? 'Renseignez le montant demandé.' : "Renseignez le montant, la commune et l'adresse du projet.") : !allDeposited ? `Déposez les ${CATS.reduce((n, c) => n + c.count, 0)} pièces requises ci-dessus.` : 'Tout est prêt — vous pouvez envoyer.'}</>}
+        {/* — Envoi — */}
+        <div style={{ borderTop: '1px solid var(--border)', marginTop: 18, paddingTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontWeight: 800, color: 'var(--foreground)' }}>{sent ? 'Demande envoyée ✅' : 'Prêt à envoyer votre demande ?'}</div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+              {sent ? 'Votre conseiller étudie votre dossier.' : <><AlertTriangle size={13} /> {!projectReady ? (hasParcelles ? 'Renseignez le montant demandé.' : "Renseignez le montant, la commune et l'adresse du projet.") : !allDeposited ? `Déposez les ${CATS.reduce((n, c) => n + c.count, 0)} pièces requises ci-dessus.` : 'Tout est prêt — vous pouvez envoyer.'}</>}
+            </div>
           </div>
+          <button onClick={() => void send()} disabled={!canSend || submitting} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: canSend ? PRIMARY : 'var(--muted, #e5e5e5)', color: canSend ? '#fff' : 'var(--muted-foreground)', border: 'none', borderRadius: 10, padding: '12px 20px', fontWeight: 700, cursor: canSend && !submitting ? 'pointer' : 'default' }}>
+            {submitting ? <Loader2 size={16} className="spin" /> : <Send size={16} />} Envoyer ma demande
+          </button>
         </div>
-        <button onClick={() => void send()} disabled={!canSend || submitting} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: canSend ? PRIMARY : 'var(--muted, #e5e5e5)', color: canSend ? '#fff' : 'var(--muted-foreground)', border: 'none', borderRadius: 10, padding: '12px 20px', fontWeight: 700, cursor: canSend && !submitting ? 'pointer' : 'default' }}>
-          {submitting ? <Loader2 size={16} className="spin" /> : <Send size={16} />} Envoyer ma demande
-        </button>
-      </div>
-
-      {/* Résumé + historique */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
-        <Section icon={<ClipboardList size={18} />} title="Résumé de la demande">
-          <Row icon={<CreditCard size={14} />} label="Montant demandé" value={form.montant ? `${form.montant} FCFA` : '— FCFA'} />
-          <Row icon={<Clock size={14} />} label="Durée" value={form.duree} />
-          <Row icon={<ClipboardList size={14} />} label="Référence" value={ref} />
-          <Row icon={<CheckCircle2 size={14} />} label="Compte créé le" value={createdAt ? new Date(createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : '—'} last />
-        </Section>
-        <Section icon={<History size={18} />} title="Historique de traitement">
-          <div style={{ padding: '14px 4px', color: 'var(--muted-foreground)', fontSize: '0.85rem' }}>
-            {sent ? 'Votre demande a été transmise. Les validations de votre conseiller apparaîtront ici et dans « Mon dossier ».' : 'Aucune action pour le moment. Les validations de votre conseiller apparaîtront ici.'}
-          </div>
-        </Section>
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button onClick={() => void load()} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted-foreground)', borderRadius: 9, padding: '8px 14px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}>
-          <RefreshCw size={14} /> Actualiser
-        </button>
       </div>
 
       {toast && <div style={{ position: 'fixed', bottom: 20, right: 20, background: 'var(--foreground)', color: 'var(--background)', padding: '10px 16px', borderRadius: 10, fontSize: '0.875rem', zIndex: 70 }} onClick={() => setToast(null)}>{toast}</div>}
@@ -262,25 +241,14 @@ function Select(p: { value: string; onChange: (v: string) => void; options: stri
 function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
   return <label style={{ display: 'block', ...style }}><span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.04em', color: 'var(--muted-foreground)', marginBottom: 5 }}>{label}</span>{children}</label>;
 }
-function Row({ icon, label, value, last }: { icon: React.ReactNode; label: string; value: string; last?: boolean }) {
+function SubHead({ icon, title, sub }: { icon: React.ReactNode; title: string; sub?: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: last ? 'none' : '1px solid var(--border)' }}>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.03em', color: 'var(--muted-foreground)' }}>{icon} {label}</span>
-      <span style={{ fontWeight: 700, color: 'var(--foreground)', fontSize: '0.9rem' }}>{value}</span>
-    </div>
-  );
-}
-function Section({ icon, title, sub, children }: { icon: React.ReactNode; title: string; sub?: string; children: React.ReactNode }) {
-  return (
-    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: 18 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: sub ? 4 : 8 }}>
-        <span style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--muted, #f5f5f5)', color: PRIMARY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span>
-        <div>
-          <div style={{ fontWeight: 800, color: 'var(--foreground)' }}>{title}</div>
-          {sub && <div style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)' }}>{sub}</div>}
-        </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <span style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--muted, #f5f5f5)', color: PRIMARY, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{icon}</span>
+      <div>
+        <div style={{ fontWeight: 800, color: 'var(--foreground)' }}>{title}</div>
+        {sub && <div style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)' }}>{sub}</div>}
       </div>
-      {children}
     </div>
   );
 }
