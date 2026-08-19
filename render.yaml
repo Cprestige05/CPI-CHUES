@@ -1,10 +1,12 @@
 # Blueprint Render — déploiement mono-service (Docker) du portail « Mon Espace ».
 # Sur Render : New → Blueprint → sélectionnez ce dépôt.
-# PLAN GRATUIT (free) : aucune carte requise. La base est ÉPHÉMÈRE (remise à zéro
-# à chaque redémarrage/redéploiement, et le service s'endort après ~15 min
-# d'inactivité). L'admin est RECRÉÉ automatiquement au démarrage via le bootstrap,
-# donc la démo reste fonctionnelle. Pour des données persistantes, passez en
-# 'starter' (payant) et ajoutez un bloc `disk` monté sur /data.
+# PLAN GRATUIT (free) : aucune carte requise. Le disque local est ÉPHÉMÈRE.
+# POUR DES DONNÉES PERSISTANTES SANS CARTE : créez une base Turso gratuite
+# (https://turso.tech) et renseignez TURSO_DATABASE_URL + TURSO_AUTH_TOKEN
+# ci-dessous. La base devient alors un réplica cloud : les comptes et dossiers
+# survivent aux redémarrages. (Les FICHIERS déposés restent sur le disque
+# éphémère tant qu'on ne les stocke pas aussi en base — voir DEPLOYMENT.md.)
+# Sans Turso, la base reste éphémère et seuls l'admin + les agents sont recréés.
 services:
   - type: web
     name: cpi-chues-portail
@@ -22,6 +24,12 @@ services:
         value: /data/app.db
       - key: STORAGE_DIR
         value: /data/documents
+      # Persistance gratuite via Turso (libSQL). Laissez vides pour rester en
+      # base éphémère. Renseignez les 2 depuis le dashboard Turso (voir DEPLOYMENT.md).
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
       # Admin créé au 1er démarrage (Render vous demandera ces 2 valeurs).
       # Aucun accès Shell requis. Choisissez un mot de passe fort (≥ 8 car.).
       - key: BOOTSTRAP_ADMIN_EMAIL

@@ -111,3 +111,34 @@ liens de vérification d'e-mail et de réinitialisation de mot de passe.
 - Documents : MIME reniflé (magic bytes), plafond de taille, nom interne aléatoire,
   jamais servis en statique public, téléchargement contrôlé (propriétaire ou personnel).
 - RBAC : `CLIENT` / `AGENT_CPI` / `ADMIN` ; validation globale réservée à `ADMIN`.
+
+## Persistance gratuite des données (Turso / libSQL)
+
+Sur le plan gratuit Render, le disque est éphémère : la base est remise à zéro
+à chaque redémarrage (les comptes inscrits disparaissent). Pour rendre les données
+persistantes **sans carte bancaire**, on branche une base **Turso** (SQLite cloud) :
+le fichier local devient un *réplica* synchronisé avec le cloud, reconstruit au
+démarrage. Aucun changement de code applicatif (pilote `libsql`, API identique).
+
+### Étapes (une seule fois)
+
+1. Créer un compte gratuit sur https://turso.tech (ou `turso auth signup`).
+2. Créer une base : `turso db create cpi-chues` (ou via le dashboard).
+3. Récupérer l'URL : `turso db show cpi-chues --url` → `libsql://cpi-chues-….turso.io`
+4. Créer un jeton : `turso db tokens create cpi-chues`
+5. Sur Render → service `cpi-chues-portail` → **Environment**, ajouter :
+   - `TURSO_DATABASE_URL` = l'URL `libsql://…`
+   - `TURSO_AUTH_TOKEN`  = le jeton
+6. **Save** → Render redéploie. Au démarrage, le log affiche
+   « réplica Turso synchronisé depuis le cloud ». Les comptes survivent désormais.
+
+> Sans ces variables, l'appli reste en base éphémère (aucune régression).
+> Ne partagez jamais le jeton (secret d'accès) ; il se saisit uniquement côté Render.
+
+### Limite connue — fichiers déposés
+
+Turso persiste la **base** (comptes, dossiers, statuts, historique). Les **fichiers**
+téléversés (CNI, bulletins…) restent sur le disque éphémère `/data/documents` et
+sont perdus au redémarrage (leurs métadonnées restent en base). Pour les rendre
+persistants aussi : soit les stocker en base (blobs libSQL), soit un stockage objet
+externe (S3/R2). À traiter séparément si le test DG doit conserver les pièces.

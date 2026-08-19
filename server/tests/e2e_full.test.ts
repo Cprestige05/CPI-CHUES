@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
-import { app, db, newClient, newAdmin, upload, uploadAllSeven } from './util.js';
+import { app, db, newClient, newAdmin, upload, uploadAllRequired } from './util.js';
 import { deleteUserCascade, tableCounts, storedFiles, foreignKeyCheck, USER_SCOPED_TABLES } from '../src/services/maintenance.js';
 
 /**
@@ -19,10 +19,10 @@ describe('Parcours complet inscription → dépôt → correction → validation
     expect(prof.status).toBe(200);
     expect(prof.body.profile.city).toBe('Dakar');
 
-    // 5) Dépôt des 7 pièces.
-    await uploadAllSeven(client);
+    // 5) Dépôt des 8 pièces.
+    await uploadAllRequired(client);
     const comp = await client.get('/api/dossier/completeness');
-    expect(comp.body.filled).toBe(7);
+    expect(comp.body.filled).toBe(8);
 
     // 6) Soumission.
     const submit = await client.post('/api/dossier/submit');
@@ -106,6 +106,6 @@ describe('Parcours complet inscription → dépôt → correction → validation
     expect(storedFiles()).toHaveLength(0);
     expect(foreignKeyCheck()).toHaveLength(0);
     // Config préservée.
-    expect(counts.document_types).toBe(3);
+    expect(counts.document_types).toBe(4);
   });
 });

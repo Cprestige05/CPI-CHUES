@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { newClient, uploadAllSeven } from './util.js';
+import { newClient, uploadAllRequired } from './util.js';
 
 describe('Notifications', () => {
   it('soumission → notification créée ; comptage non-lus ; marquer lu', async () => {
     const { a } = await newClient('n1@test.sn');
-    await uploadAllSeven(a);
+    await uploadAllRequired(a);
     await a.post('/api/dossier/submit');
 
     const list = await a.get('/api/notifications');
@@ -23,7 +23,7 @@ describe('Notifications', () => {
 
   it('une notification ne contient ni jeton ni contenu de document', async () => {
     const { a } = await newClient('n2@test.sn');
-    await uploadAllSeven(a);
+    await uploadAllRequired(a);
     await a.post('/api/dossier/submit');
     const list = await a.get('/api/notifications');
     for (const n of list.body.notifications) {

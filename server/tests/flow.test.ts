@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { newClient, newAdmin, upload, uploadAllSeven, db } from './util.js';
+import { newClient, newAdmin, upload, uploadAllRequired, db } from './util.js';
 
 function dossierIdOf(userId: string): string {
   return (db.prepare('SELECT id FROM dossiers WHERE user_id=?').get(userId) as any).id;
@@ -35,9 +35,9 @@ describe('Soumission & validation administrative', () => {
     expect(await a.post('/api/dossier/submit').then(r => r.status)).toBe(400);
   });
 
-  it('soumission OK avec les 7 pièces obligatoires', async () => {
+  it('soumission OK avec les 8 pièces obligatoires', async () => {
     const { a } = await newClient('f4@test.sn');
-    await uploadAllSeven(a);
+    await uploadAllRequired(a);
     const res = await a.post('/api/dossier/submit');
     expect(res.status).toBe(200);
     expect(res.body.dossier.status).toBe('SOUMIS');
@@ -45,7 +45,7 @@ describe('Soumission & validation administrative', () => {
 
   it('rejet sans motif → 400 ; correction sans motif → 400', async () => {
     const client = await newClient('f5@test.sn');
-    await uploadAllSeven(client.a);
+    await uploadAllRequired(client.a);
     await client.a.post('/api/dossier/submit');
     const admin = await newAdmin('adm5@test.sn');
     const id = docIdOf(client.userId, 'cni', 0);
@@ -55,7 +55,7 @@ describe('Soumission & validation administrative', () => {
 
   it('validation globale refusée si une pièce non validée → 409', async () => {
     const client = await newClient('f6@test.sn');
-    await uploadAllSeven(client.a);
+    await uploadAllRequired(client.a);
     await client.a.post('/api/dossier/submit');
     const admin = await newAdmin('adm6@test.sn');
     const res = await admin.a.post(`/api/admin/dossiers/${dossierIdOf(client.userId)}/validate`);
@@ -71,9 +71,9 @@ describe('Soumission & validation administrative', () => {
     expect(await admin.a.post(`/api/admin/documents/${id}/validate`).then(r => r.status)).toBe(400);
   });
 
-  it('parcours complet : valider les 7 pièces → validation globale + historique conservé', async () => {
+  it('parcours complet : valider les 8 pièces → validation globale + historique conservé', async () => {
     const client = await newClient('f7@test.sn');
-    await uploadAllSeven(client.a);
+    await uploadAllRequired(client.a);
     await client.a.post('/api/dossier/submit');
     const admin = await newAdmin('adm7@test.sn');
     const dossierId = dossierIdOf(client.userId);
@@ -91,7 +91,7 @@ describe('Soumission & validation administrative', () => {
 
   it('correction → remplacement crée une nouvelle version ; ancienne conservée (historique)', async () => {
     const client = await newClient('f8@test.sn');
-    await uploadAllSeven(client.a);
+    await uploadAllRequired(client.a);
     await client.a.post('/api/dossier/submit');
     const admin = await newAdmin('adm8@test.sn');
     const id = docIdOf(client.userId, 'releve', 0);

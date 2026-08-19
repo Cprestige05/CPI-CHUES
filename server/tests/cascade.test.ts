@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { app, db, newClient, newAdmin, uploadAllSeven } from './util.js';
+import { app, db, newClient, newAdmin, uploadAllRequired } from './util.js';
 import request from 'supertest';
 import { deleteUserCascade, storedFiles, foreignKeyCheck } from '../src/services/maintenance.js';
 
@@ -28,9 +28,9 @@ function childCounts(userId: string) {
 
 describe('Cascade de suppression utilisateur (données + fichiers)', () => {
   it('crée un utilisateur complet puis supprime tout par cascade, sans orphelin', async () => {
-    // 1-2) Utilisateur client complet : compte, profil, session, dossier, 7 pièces + versions/fichiers.
+    // 1-2) Utilisateur client complet : compte, profil, session, dossier, 8 pièces + versions/fichiers.
     const { a: client, userId } = await newClient('cascade-client@example.test');
-    await uploadAllSeven(client);
+    await uploadAllRequired(client);
     const submit = await client.post('/api/dossier/submit');
     expect(submit.status).toBe(200);
 
@@ -45,7 +45,7 @@ describe('Cascade de suppression utilisateur (données + fichiers)', () => {
 
     // Vérifie que TOUTES les données liées existent bien avant suppression.
     const before = childCounts(userId);
-    expect(before).toMatchObject({ users: 1, profiles: 1, dossiers: 1, documents: 7 });
+    expect(before).toMatchObject({ users: 1, profiles: 1, dossiers: 1, documents: 8 });
     expect(before.sessions).toBeGreaterThanOrEqual(1);
     expect(before.versions).toBeGreaterThanOrEqual(7);
     expect(before.reviews).toBeGreaterThanOrEqual(1);

@@ -92,11 +92,12 @@ export function upload(a: request.Agent, typeCode: string, slotIndex: number, f 
     .attach('file', f.buffer, { filename: f.filename, contentType: f.contentType });
 }
 
-/** Dépose les 7 pièces obligatoires (cni×1, bulletin×3, relevé×3). */
-export async function uploadAllSeven(a: request.Agent) {
+/** Dépose les 8 pièces obligatoires (cni×1, bulletin×3, relevé×3, domicile×1). */
+export async function uploadAllRequired(a: request.Agent) {
   await upload(a, 'cni', 0);
   for (let i = 0; i < 3; i++) await upload(a, 'bulletin', i);
   for (let i = 0; i < 3; i++) await upload(a, 'releve', i);
+  await upload(a, 'domicile', 0);
 }
 
 export { db };

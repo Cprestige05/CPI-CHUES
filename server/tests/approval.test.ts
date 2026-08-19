@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { newClient, newAdmin, newAgent, uploadAllSeven } from './util.js';
+import { newClient, newAdmin, newAgent, uploadAllRequired } from './util.js';
 
 /**
  * Parcours de validation du compte par l'admin + attribution d'un agent CPI.
@@ -50,7 +50,7 @@ describe('Validation compte + attribution agent', () => {
     expect(again.status).toBe(409);
 
     // Le client soumet son dossier → l'agent attribué le voit (et pas les autres agents).
-    await uploadAllSeven(client);
+    await uploadAllRequired(client);
     await client.post('/api/dossier/submit');
     const agentList = await agent.get('/api/admin/dossiers');
     expect(agentList.body.dossiers.some((d: any) => d.client.email === 'toapprove@example.test')).toBe(true);

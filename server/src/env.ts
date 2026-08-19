@@ -30,6 +30,11 @@ export const env = {
   PORT: num(process.env.PORT, 8787),
   CLIENT_ORIGIN: process.env.CLIENT_ORIGIN ?? 'http://localhost:5173',
   DATABASE_FILE: resolve(SERVER_ROOT, process.env.DATABASE_FILE ?? './data/app.db'),
+  // Base cloud persistante (Turso / libSQL). Si TURSO_DATABASE_URL est défini, la
+  // base locale devient un « réplica embarqué » synchronisé avec le cloud : les
+  // données survivent aux redémarrages (utile sur un hébergement à disque éphémère).
+  TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL ?? '',
+  TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN ?? '',
   STORAGE_DIR: resolve(SERVER_ROOT, process.env.STORAGE_DIR ?? './storage/documents'),
   SESSION_COOKIE_NAME: process.env.SESSION_COOKIE_NAME ?? 'mon_espace_sid',
   SESSION_TTL_HOURS: num(process.env.SESSION_TTL_HOURS, 12),
