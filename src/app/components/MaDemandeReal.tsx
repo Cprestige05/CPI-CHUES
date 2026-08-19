@@ -8,9 +8,6 @@ import ParcelleCatalogue, { type Lot } from './ParcelleCatalogue';
 
 const PRIMARY = '#5D1615';
 
-const REGIONS = ['Dakar', 'Thiès', 'Diourbel', 'Saint-Louis', 'Louga', 'Fatick', 'Kaolack', 'Kaffrine', 'Ziguinchor', 'Kolda', 'Sédhiou', 'Tambacounda', 'Kédougou', 'Matam'];
-const DUREES = ['5 ans', '10 ans', '15 ans', '20 ans', '25 ans'];
-
 interface Doc { id: string; typeCode: string; slotIndex: number; status: string; reason?: string; activeVersion: { id: string } | null }
 const CATS = [
   { code: 'cni', title: "Pièce d'identité valide", sub: 'CNI ou passeport en cours de validité', count: 1 },
@@ -33,35 +30,17 @@ export default function MaDemandeReal() {
   const [parcelles, setParcelles] = useState<Lot[]>([]);
   const projetRef = useRef<HTMLDivElement | null>(null);
 
-  // Formulaire projet — état LOCAL (non persisté côté backend).
-  const [form, setForm] = useState({
-    type: 'Financement immobilier', nature: 'Acquisition immobilière',
-    montant: '', duree: '15 ans', apport: '', region: 'Dakar', commune: '', adresse: '', description: '',
-  });
-  const set = (k: keyof typeof form) => (v: string) => setForm(f => ({ ...f, [k]: v }));
-
   // Persiste la sélection de lots côté backend (rattachée au dossier).
   const persistParcelles = async (lots: Lot[]) => {
     try { await api.post('/dossier/parcelles', { lotIds: lots.map(l => l.id) }); }
     catch (e) { setToast(errorMessage(e)); }
   };
 
-  // Sélection depuis le catalogue → pré-remplit le formulaire projet.
+  // Sélection depuis le catalogue → rattachée au dossier.
   const onParcellesConfirm = (lots: Lot[]) => {
     setParcelles(lots);
     void persistParcelles(lots);
     if (lots.length === 0) return;
-    const refs = lots.map(l => l.reference).join(', ');
-    const totalPrix = lots.reduce((n, l) => n + (l.prix || 0), 0);
-    const totalSurface = lots.reduce((n, l) => n + Number(l.surface || 0), 0);
-    setForm(f => ({
-      ...f,
-      nature: 'Acquisition immobilière',
-      montant: totalPrix.toLocaleString('fr-FR'),
-      commune: f.commune || 'Dakar',
-      adresse: refs,
-      description: `Réservation de ${lots.length} parcelle${lots.length > 1 ? 's' : ''} (${refs}). Superficie totale : ${totalSurface.toLocaleString('fr-FR')} m².`,
-    }));
     setToast(`${lots.length} parcelle${lots.length > 1 ? 's' : ''} ajoutée${lots.length > 1 ? 's' : ''} à votre demande.`);
     setTimeout(() => projetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   };
@@ -112,10 +91,9 @@ export default function MaDemandeReal() {
 
   const filledCount = (code: string) => docs.filter(d => d.typeCode === code && d.activeVersion).length;
   const allDeposited = CATS.every(c => filledCount(c.code) >= c.count);
-  // La localisation vient de la parcelle choisie ; sinon on la saisit manuellement.
+  // La demande = une ou plusieurs parcelles choisies + les pièces déposées.
   const hasParcelles = parcelles.length > 0;
-  const projectReady = form.montant.trim() !== '' && (hasParcelles || (form.commune.trim() !== '' && form.adresse.trim() !== ''));
-  const canSend = projectReady && allDeposited && (status === 'BROUILLON' || status === 'A_CORRIGER');
+  const canSend = hasParcelles && allDeposited && (status === 'BROUILLON' || status === 'A_CORRIGER');
   const sent = status !== 'BROUILLON' && status !== 'A_CORRIGER' && status !== 'REJETE';
 
   const send = async () => {
@@ -131,7 +109,7 @@ export default function MaDemandeReal() {
   if (loading) return <div style={{ color: 'var(--muted-foreground)', padding: 48, textAlign: 'center' }}>Chargement…</div>;
   if (error) return <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: 10, padding: '12px 16px', maxWidth: 760, margin: '0 auto' }}>{error}</div>;
 
-  const globalPct = Math.round((((projectReady ? 1 : 0) + CATS.reduce((n, c) => n + Math.min(filledCount(c.code) / c.count, 1), 0)) / (1 + CATS.length)) * 100);
+  const globalPct = Math.round((((hasParcelles ? 1 : 0) + CATS.reduce((n, c) => n + Math.min(filledCount(c.code) / c.count, 1), 0)) / (1 + CATS.length)) * 100);
 
   return (
     <div style={{ maxWidth: 1040, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -173,32 +151,11 @@ export default function MaDemandeReal() {
             </div>
           </div>
         )}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, marginTop: 12 }}>
-          <Field label="TYPE DE DEMANDE"><Select value={form.type} onChange={set('type')} options={['Financement immobilier', 'Rachat de crédit', 'Construction']} disabled={sent} /></Field>
-          <Field label="NATURE DU PROJET"><Select value={form.nature} onChange={set('nature')} options={['Acquisition immobilière', 'Construction', 'Rénovation']} disabled={sent} /></Field>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginTop: 14 }}>
-          <Field label="MONTANT DEMANDÉ (FCFA) *"><Input value={form.montant} onChange={set('montant')} placeholder="Ex. 25 000 000" disabled={sent} /></Field>
-          <Field label="DURÉE SOUHAITÉE"><Select value={form.duree} onChange={set('duree')} options={DUREES} disabled={sent} /></Field>
-          <Field label="APPORT PERSONNEL (FCFA)"><Input value={form.apport} onChange={set('apport')} placeholder="0 si aucun" disabled={sent} /></Field>
-        </div>
-        {hasParcelles ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, fontSize: '0.82rem', color: 'var(--muted-foreground)' }}>
-            <MapPin size={14} style={{ color: PRIMARY }} /> Localisation définie par la parcelle choisie ({parcelles.map(p => p.reference).join(', ')}).
-          </div>
-        ) : (
-          <div style={{ background: 'var(--chues-primary-soft, #fbeef0)', borderRadius: 12, padding: 14, marginTop: 14 }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em', color: PRIMARY, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}><MapPin size={13} /> LOCALISATION DU PROJET</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
-              <Field label="RÉGION"><Select value={form.region} onChange={set('region')} options={REGIONS} disabled={sent} /></Field>
-              <Field label="COMMUNE / VILLE *"><Input value={form.commune} onChange={set('commune')} placeholder="Votre commune" disabled={sent} /></Field>
-              <Field label="ADRESSE OU LOCALISATION *"><Input value={form.adresse} onChange={set('adresse')} placeholder="Ex. Lot 47…" disabled={sent} /></Field>
-            </div>
+        {parcelles.length === 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, fontSize: '0.85rem', color: 'var(--muted-foreground)' }}>
+            <MapPin size={14} style={{ color: PRIMARY }} /> Choisissez une ou plusieurs parcelles dans le catalogue ci-dessus.
           </div>
         )}
-        <Field label="DESCRIPTION DU PROJET" style={{ marginTop: 14 }}>
-          <textarea value={form.description} onChange={e => set('description')(e.target.value)} disabled={sent} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
-        </Field>
 
         {/* — Documents requis — */}
         <div style={{ borderTop: '1px solid var(--border)', marginTop: 20, paddingTop: 18 }} />
@@ -228,7 +185,7 @@ export default function MaDemandeReal() {
           <div>
             <div style={{ fontWeight: 800, color: 'var(--foreground)' }}>{sent ? 'Demande envoyée ✅' : 'Prêt à envoyer votre demande ?'}</div>
             <div style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-              {sent ? 'Votre conseiller étudie votre dossier.' : <><AlertTriangle size={13} /> {!projectReady ? (hasParcelles ? 'Renseignez le montant demandé.' : "Renseignez le montant, la commune et l'adresse du projet.") : !allDeposited ? `Déposez les ${CATS.reduce((n, c) => n + c.count, 0)} pièces requises ci-dessus.` : 'Tout est prêt — vous pouvez envoyer.'}</>}
+              {sent ? 'Votre conseiller étudie votre dossier.' : <><AlertTriangle size={13} /> {!hasParcelles ? 'Choisissez au moins une parcelle dans le catalogue.' : !allDeposited ? `Déposez les ${CATS.reduce((n, c) => n + c.count, 0)} pièces requises ci-dessus.` : 'Tout est prêt — vous pouvez envoyer.'}</>}
             </div>
           </div>
           <button onClick={() => void send()} disabled={!canSend || submitting} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: canSend ? PRIMARY : 'var(--muted, #e5e5e5)', color: canSend ? '#fff' : 'var(--muted-foreground)', border: 'none', borderRadius: 10, padding: '12px 20px', fontWeight: 700, cursor: canSend && !submitting ? 'pointer' : 'default' }}>
@@ -243,16 +200,6 @@ export default function MaDemandeReal() {
   );
 }
 
-const inputStyle: React.CSSProperties = { width: '100%', padding: '10px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--background)', color: 'var(--foreground)', fontSize: '0.9rem', boxSizing: 'border-box', fontFamily: 'var(--font-sans)' };
-function Input(p: { value: string; onChange: (v: string) => void; placeholder?: string; disabled?: boolean }) {
-  return <input value={p.value} onChange={e => p.onChange(e.target.value)} placeholder={p.placeholder} disabled={p.disabled} style={inputStyle} />;
-}
-function Select(p: { value: string; onChange: (v: string) => void; options: string[]; disabled?: boolean }) {
-  return <select value={p.value} onChange={e => p.onChange(e.target.value)} disabled={p.disabled} style={inputStyle}>{p.options.map(o => <option key={o} value={o}>{o}</option>)}</select>;
-}
-function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
-  return <label style={{ display: 'block', ...style }}><span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.04em', color: 'var(--muted-foreground)', marginBottom: 5 }}>{label}</span>{children}</label>;
-}
 function SubHead({ icon, title, sub }: { icon: React.ReactNode; title: string; sub?: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
