@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import {
-  Building2, MapPin, FolderOpen, Send, Clock,
+  Building2, MapPin, FolderOpen, Folder, Send, Clock,
   CheckCircle2, AlertTriangle, Loader2, Layers, X,
+  ChevronDown, ChevronRight, FileText, Download, Trash2, UploadCloud, Lock,
 } from 'lucide-react';
 import { api, errorMessage, ApiError } from '../data/apiClient';
 import ParcelleCatalogue, { type Lot } from './ParcelleCatalogue';
@@ -9,6 +10,15 @@ import ParcelleCatalogue, { type Lot } from './ParcelleCatalogue';
 const PRIMARY = '#5D1615';
 
 interface Doc { id: string; typeCode: string; slotIndex: number; status: string; reason?: string; activeVersion: { id: string } | null }
+const SLOT_STATUS: Record<string, { label: string; bg: string; fg: string }> = {
+  MANQUANT:        { label: 'À déposer',       bg: '#f1f5f9', fg: '#64748b' },
+  BROUILLON:       { label: 'Déposé',          bg: '#dbeafe', fg: '#1e40af' },
+  SOUMIS:          { label: 'En vérification', bg: '#fef3c7', fg: '#92400e' },
+  EN_VERIFICATION: { label: 'En vérification', bg: '#fef3c7', fg: '#92400e' },
+  VALIDE:          { label: 'Validé',          bg: '#dcfce7', fg: '#166534' },
+  A_CORRIGER:      { label: 'À corriger',      bg: '#ffedd5', fg: '#9a3412' },
+  REJETE:          { label: 'Rejeté',          bg: '#fee2e2', fg: '#991b1b' },
+};
 const CATS = [
   { code: 'cni', title: "Pièce d'identité valide", sub: 'CNI ou passeport en cours de validité', count: 1 },
   { code: 'bulletin', title: 'Justificatifs de revenus', sub: 'Les 3 derniers bulletins de salaire (un par un)', count: 3 },
@@ -28,7 +38,9 @@ export default function MaDemandeReal() {
   const [toast, setToast] = useState<string | null>(null);
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
   const [parcelles, setParcelles] = useState<Lot[]>([]);
+  const [openCats, setOpenCats] = useState<Record<string, boolean>>({});
   const projetRef = useRef<HTMLDivElement | null>(null);
+  const toggleCat = (code: string) => setOpenCats(o => ({ ...o, [code]: !o[code] }));
 
   // Persiste la sélection de lots côté backend (rattachée au dossier).
   const persistParcelles = async (lots: Lot[]) => {
@@ -64,29 +76,25 @@ export default function MaDemandeReal() {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
-  const nextEmptySlot = (code: string) => {
-    const inCat = docs.filter(d => d.typeCode === code);
-    const filled = new Set(inCat.filter(d => d.activeVersion).map(d => d.slotIndex));
-    for (let i = 0; i < (CATS.find(c => c.code === code)?.count ?? 1); i++) if (!filled.has(i)) return i;
-    return -1;
-  };
-
-  const onPick = (code: string) => async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
+  // Dépôt sur un emplacement PRÉCIS (sous-dossier).
+  const uploadSlot = async (code: string, slotIndex: number, file: File | undefined) => {
     if (!file) return;
-    const slot = nextEmptySlot(code);
-    if (slot < 0) { setToast('Cette catégorie est complète.'); return; }
-    setBusyCat(code);
+    setBusyCat(`${code}:${slotIndex}`);
     try {
       const fd = new FormData();
-      fd.append('typeCode', code); fd.append('slotIndex', String(slot)); fd.append('file', file);
+      fd.append('typeCode', code); fd.append('slotIndex', String(slotIndex)); fd.append('file', file);
       await api.upload('/documents', fd);
       await load();
       setToast('Pièce déposée.');
     } catch (err) {
       setToast(err instanceof ApiError ? err.message : errorMessage(err));
     } finally { setBusyCat(null); }
+  };
+  const removeSlot = async (docId: string) => {
+    setBusyCat(docId);
+    try { await api.del(`/documents/${docId}`); await load(); setToast('Pièce supprimée.'); }
+    catch (err) { setToast(errorMessage(err)); }
+    finally { setBusyCat(null); }
   };
 
   const filledCount = (code: string) => docs.filter(d => d.typeCode === code && d.activeVersion).length;
@@ -163,19 +171,80 @@ export default function MaDemandeReal() {
         {CATS.map(c => {
           const n = filledCount(c.code);
           const complete = n >= c.count;
+          const open = !!openCats[c.code];
           return (
-            <div key={c.code} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: 160 }}>
-                <div style={{ fontWeight: 700, color: 'var(--foreground)' }}>{c.title}</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>{c.sub}</div>
-              </div>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, borderRadius: 999, padding: '4px 11px', display: 'inline-flex', alignItems: 'center', gap: 5, background: complete ? '#dcfce7' : 'var(--muted, #f1f1f1)', color: complete ? '#166534' : 'var(--muted-foreground)' }}>
-                {complete ? <><CheckCircle2 size={13} /> {c.count > 1 ? `${n}/${c.count} déposés` : 'Déposé'}</> : <><Clock size={13} /> {c.count > 1 ? `${n}/${c.count}` : 'À déposer'}</>}
-              </span>
-              <input ref={el => { fileInputs.current[c.code] = el; }} type="file" accept="application/pdf,image/jpeg,image/png" style={{ display: 'none' }} onChange={onPick(c.code)} />
-              <button onClick={() => fileInputs.current[c.code]?.click()} disabled={complete || busyCat === c.code || sent} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: complete || sent ? 'var(--muted, #e5e5e5)' : PRIMARY, color: complete || sent ? 'var(--muted-foreground)' : '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontWeight: 700, fontSize: '0.82rem', cursor: complete || sent ? 'default' : 'pointer' }}>
-                {busyCat === c.code ? <Loader2 size={14} className="spin" /> : <FolderOpen size={14} />} Déposer
+            <div key={c.code} style={{ borderTop: '1px solid var(--border)' }}>
+              {/* En-tête du dossier (cliquable) */}
+              <button onClick={() => toggleCat(c.code)} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', background: 'transparent', border: 'none', padding: '14px 0', cursor: 'pointer' }}>
+                <span style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--chues-primary-soft, #fbeef0)', color: PRIMARY, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {open ? <FolderOpen size={18} /> : <Folder size={18} />}
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontWeight: 700, color: 'var(--foreground)' }}>{c.title}</span>
+                  <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>{c.count > 1 ? `${c.count} documents à déposer` : c.sub}</span>
+                </span>
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, borderRadius: 999, padding: '4px 11px', display: 'inline-flex', alignItems: 'center', gap: 5, background: complete ? '#dcfce7' : 'var(--muted, #f1f1f1)', color: complete ? '#166534' : 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>
+                  {complete ? <><CheckCircle2 size={13} /> Complet</> : <><Clock size={13} /> {n}/{c.count}</>}
+                </span>
+                {open ? <ChevronDown size={18} style={{ color: 'var(--muted-foreground)' }} /> : <ChevronRight size={18} style={{ color: 'var(--muted-foreground)' }} />}
               </button>
+
+              {/* Emplacements individuels */}
+              {open && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '0 0 14px 12px' }}>
+                  {Array.from({ length: c.count }).map((_, i) => {
+                    const doc = docs.find(d => d.typeCode === c.code && d.slotIndex === i);
+                    const st = SLOT_STATUS[doc?.status ?? 'MANQUANT'] ?? SLOT_STATUS.MANQUANT;
+                    const filledSlot = !!doc?.activeVersion;
+                    const key = `${c.code}:${i}`;
+                    const busy = busyCat === key || busyCat === doc?.id;
+                    const label = c.count > 1 ? `${c.title} ${i + 1}` : c.title;
+                    // Pièce validée par l'agent CPI : verrouillée (ni voir, ni remplacer, ni supprimer).
+                    const locked = doc?.status === 'VALIDE';
+                    const canRemove = filledSlot && status === 'BROUILLON' && !locked;
+                    return (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', flexWrap: 'wrap', background: 'var(--background)' }}>
+                        <span style={{ width: 32, height: 32, borderRadius: 8, background: filledSlot ? '#dbeafe' : 'var(--muted, #f1f1f1)', color: filledSlot ? '#1e40af' : 'var(--muted-foreground)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <FileText size={15} />
+                        </span>
+                        <div style={{ flex: 1, minWidth: 130 }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--foreground)' }}>{label}</div>
+                          <div style={{ fontSize: '0.76rem', color: 'var(--muted-foreground)' }}>{filledSlot ? 'Fichier déposé' : 'Aucun fichier'}</div>
+                        </div>
+                        <span style={{ fontSize: '0.74rem', fontWeight: 700, borderRadius: 999, padding: '3px 10px', background: st.bg, color: st.fg, whiteSpace: 'nowrap' }}>{st.label}</span>
+                        <input ref={el => { fileInputs.current[key] = el; }} type="file" accept="application/pdf,image/jpeg,image/png" style={{ display: 'none' }}
+                          onChange={e => { const f = e.target.files?.[0]; e.currentTarget.value = ''; void uploadSlot(c.code, i, f); }} />
+                        {locked ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.74rem', fontWeight: 600, color: '#166534' }} title="Pièce validée par votre conseiller — verrouillée">
+                            <Lock size={13} /> Verrouillée
+                          </span>
+                        ) : (
+                          <>
+                            {filledSlot && (
+                              <button onClick={() => window.open(`/api/documents/${doc!.activeVersion!.id}/download`, '_blank', 'noopener')} title="Voir / télécharger"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', border: '1px solid var(--border)', color: 'var(--foreground)', borderRadius: 8, padding: '7px 11px', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}>
+                                <Download size={13} /> Voir
+                              </button>
+                            )}
+                            {!sent && (
+                              <button onClick={() => fileInputs.current[key]?.click()} disabled={busy}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: PRIMARY, color: '#fff', border: 'none', borderRadius: 8, padding: '7px 12px', fontSize: '0.78rem', fontWeight: 700, cursor: busy ? 'default' : 'pointer' }}>
+                                {busy ? <Loader2 size={13} className="spin" /> : <UploadCloud size={13} />} {filledSlot ? 'Remplacer' : 'Déposer'}
+                              </button>
+                            )}
+                            {!sent && canRemove && (
+                              <button onClick={() => void removeSlot(doc!.id)} disabled={busy} title="Supprimer"
+                                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: '1px solid rgba(220,38,38,0.3)', color: '#b91c1c', borderRadius: 8, padding: '7px 9px', cursor: 'pointer' }}>
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })}

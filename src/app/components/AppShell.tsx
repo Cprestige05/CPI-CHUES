@@ -54,11 +54,10 @@ type NavItem = { id: string; label: string; icon: React.ComponentType<{ classNam
 
 function getNavItems(role: UserRole): NavItem[] {
   if (role === 'user') return [
-    { id: 'dashboard',    label: 'Tableau de bord', icon: LayoutDashboard },
+    { id: 'simulateur',   label: 'Simulateur',       icon: CreditCard      },
     { id: 'ma-demande',   label: 'Ma demande',       icon: FileText        },
     { id: 'mon-dossier',  label: 'Mon dossier',      icon: FolderOpen      },
-    { id: 'parcelles',    label: 'Réserver une parcelle', icon: MapPin      },
-    { id: 'simulateur',   label: 'Simulateur',       icon: CreditCard      },
+    { id: 'dashboard',    label: 'Tableau de bord', icon: LayoutDashboard },
     { id: 'notifications', label: 'Notifications',  icon: Bell            },
     { id: 'support',      label: 'Support',          icon: LifeBuoy        },
   ];
