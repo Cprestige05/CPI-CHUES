@@ -3,6 +3,7 @@ import { env } from './env.js';
 import { runMigrations } from './db/migrate.js';
 import { mailer } from './lib/mailer.js';
 import { bootstrapAdmin } from './lib/bootstrap.js';
+import { seedParcelles } from './lib/seedParcelles.js';
 
 // SÉCURITÉ : refuse de démarrer en production avec l'adaptateur e-mail de développement,
 // SAUF si ALLOW_DEV_MAILER=true (déploiement de DÉMONSTRATION uniquement — l'admin valide
@@ -21,6 +22,8 @@ if (applied > 0) console.log(`[startup] ${applied} migration(s) appliquée(s).`)
 
 // Admin de démarrage optionnel (variables d'env) — utile sans accès Shell.
 await bootstrapAdmin();
+// Catalogue des parcelles (2500 lots / 482 îlots) si la table est vide.
+seedParcelles();
 
 const app = createApp();
 app.listen(env.PORT, () => {

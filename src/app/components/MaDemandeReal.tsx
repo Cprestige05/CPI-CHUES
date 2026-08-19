@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Building2, MapPin, FolderOpen, Send, ClipboardList, History, CreditCard, Clock,
-  CheckCircle2, AlertTriangle, Loader2, RefreshCw,
+  CheckCircle2, AlertTriangle, Loader2, RefreshCw, Layers, X,
 } from 'lucide-react';
 import { api, errorMessage, ApiError } from '../data/apiClient';
+import ParcelleCatalogue, { type Lot } from './ParcelleCatalogue';
 
 const PRIMARY = '#5D1615';
 
@@ -28,6 +29,8 @@ export default function MaDemandeReal() {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [parcelles, setParcelles] = useState<Lot[]>([]);
+  const projetRef = useRef<HTMLDivElement | null>(null);
 
   // Formulaire projet — état LOCAL (non persisté côté backend).
   const [form, setForm] = useState({
@@ -35,6 +38,26 @@ export default function MaDemandeReal() {
     montant: '', duree: '15 ans', apport: '', region: 'Dakar', commune: '', adresse: '', description: '',
   });
   const set = (k: keyof typeof form) => (v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  // Sélection depuis le catalogue → pré-remplit le formulaire projet.
+  const onParcellesConfirm = (lots: Lot[]) => {
+    setParcelles(lots);
+    if (lots.length === 0) return;
+    const refs = lots.map(l => l.reference).join(', ');
+    const totalPrix = lots.reduce((n, l) => n + (l.prix || 0), 0);
+    const totalSurface = lots.reduce((n, l) => n + Number(l.surface || 0), 0);
+    setForm(f => ({
+      ...f,
+      nature: 'Acquisition immobilière',
+      montant: totalPrix.toLocaleString('fr-FR'),
+      commune: f.commune || 'Dakar',
+      adresse: refs,
+      description: `Réservation de ${lots.length} parcelle${lots.length > 1 ? 's' : ''} (${refs}). Superficie totale : ${totalSurface.toLocaleString('fr-FR')} m².`,
+    }));
+    setToast(`${lots.length} parcelle${lots.length > 1 ? 's' : ''} ajoutée${lots.length > 1 ? 's' : ''} à votre demande.`);
+    setTimeout(() => projetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  };
+  const removeParcelle = (id: string) => setParcelles(ps => ps.filter(p => p.id !== id));
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -115,8 +138,25 @@ export default function MaDemandeReal() {
         </div>
       </div>
 
+      {/* Catalogue des parcelles — en haut de la demande */}
+      {!sent && <ParcelleCatalogue onConfirm={onParcellesConfirm} />}
+
       {/* Projet immobilier (formulaire local) */}
+      <div ref={projetRef} style={{ scrollMarginTop: 12 }}>
       <Section icon={<Building2 size={18} />} title="Projet immobilier">
+        {parcelles.length > 0 && (
+          <div style={{ background: 'var(--chues-primary-soft, #fbeef0)', border: `1px solid ${PRIMARY}22`, borderRadius: 12, padding: 12, marginBottom: 6 }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em', color: PRIMARY, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}><Layers size={13} /> PARCELLES CHOISIES ({parcelles.length})</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {parcelles.map(p => (
+                <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 999, padding: '5px 10px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)' }}>
+                  {p.reference} · {p.surface} m² · {p.prix.toLocaleString('fr-FR')} F
+                  {!sent && <button onClick={() => removeParcelle(p.id)} aria-label="Retirer" style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', display: 'inline-flex', padding: 0 }}><X size={13} /></button>}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, marginTop: 8 }}>
           <Field label="TYPE DE DEMANDE"><Select value={form.type} onChange={set('type')} options={['Financement immobilier', 'Rachat de crédit', 'Construction']} disabled={sent} /></Field>
           <Field label="NATURE DU PROJET"><Select value={form.nature} onChange={set('nature')} options={['Acquisition immobilière', 'Construction', 'Rénovation']} disabled={sent} /></Field>
@@ -138,6 +178,7 @@ export default function MaDemandeReal() {
           <textarea value={form.description} onChange={e => set('description')(e.target.value)} disabled={sent} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
         </Field>
       </Section>
+      </div>
 
       {/* Prêt à envoyer */}
       <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>

@@ -11,6 +11,7 @@ import { dossierRouter } from './routes/dossier.js';
 import { documentsRouter } from './routes/documents.js';
 import { adminRouter } from './routes/admin.js';
 import { notificationsRouter } from './routes/notifications.js';
+import { parcellesRouter } from './routes/parcelles.js';
 
 export function createApp() {
   const app = express();
@@ -45,6 +46,7 @@ export function createApp() {
   app.use('/api/documents', documentsRouter);
   app.use('/api/admin', adminRouter);
   app.use('/api/notifications', notificationsRouter);
+  app.use('/api/parcelles', parcellesRouter);
 
   // ─── Déploiement mono-service : sert le frontend compilé (SPA) ───────────────
   // Une seule URL sert l'API (/api/*) ET l'application ; les appels front vers /api
