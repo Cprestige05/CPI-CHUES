@@ -40,9 +40,16 @@ export default function MaDemandeReal() {
   });
   const set = (k: keyof typeof form) => (v: string) => setForm(f => ({ ...f, [k]: v }));
 
+  // Persiste la sélection de lots côté backend (rattachée au dossier).
+  const persistParcelles = async (lots: Lot[]) => {
+    try { await api.post('/dossier/parcelles', { lotIds: lots.map(l => l.id) }); }
+    catch (e) { setToast(errorMessage(e)); }
+  };
+
   // Sélection depuis le catalogue → pré-remplit le formulaire projet.
   const onParcellesConfirm = (lots: Lot[]) => {
     setParcelles(lots);
+    void persistParcelles(lots);
     if (lots.length === 0) return;
     const refs = lots.map(l => l.reference).join(', ');
     const totalPrix = lots.reduce((n, l) => n + (l.prix || 0), 0);
@@ -58,7 +65,11 @@ export default function MaDemandeReal() {
     setToast(`${lots.length} parcelle${lots.length > 1 ? 's' : ''} ajoutée${lots.length > 1 ? 's' : ''} à votre demande.`);
     setTimeout(() => projetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   };
-  const removeParcelle = (id: string) => setParcelles(ps => ps.filter(p => p.id !== id));
+  const removeParcelle = (id: string) => setParcelles(ps => {
+    const next = ps.filter(p => p.id !== id);
+    void persistParcelles(next);
+    return next;
+  });
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -67,6 +78,7 @@ export default function MaDemandeReal() {
       setDocs(d.documents ?? []);
       setStatus(d.dossier?.status ?? 'BROUILLON');
       setCreatedAt(d.dossier?.created_at ?? null);
+      if (Array.isArray(d.parcelles)) setParcelles(d.parcelles.map((p: Omit<Lot, 'statut'>) => ({ ...p, statut: 'disponible' as const })));
       const id: string = d.dossier?.id ?? '';
       setRef('CPI-' + (id.replace(/[^0-9a-zA-Z]/g, '').slice(-6).toUpperCase() || '000000'));
     } catch (e) { setError(errorMessage(e)); } finally { setLoading(false); }

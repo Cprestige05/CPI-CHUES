@@ -63,6 +63,41 @@ export function getAssignedAgent(userId: string) {
   if (!row) return null;
   return { id: row.id, email: row.email, firstName: row.first_name ?? '', lastName: row.last_name ?? '' };
 }
+// ─── Lots choisis rattachés au dossier ───────────────────────────────────────
+export interface DossierParcelle { id: string; reference: string; ilot: string; numero_lot: string; surface: string; prix: number }
+
+export function getDossierParcelles(dossierId: string): DossierParcelle[] {
+  return db.prepare(
+    `SELECT parcelle_id AS id, reference, ilot, numero_lot, surface, prix
+       FROM dossier_parcelles WHERE dossier_id = ?
+      ORDER BY CAST(ilot AS INTEGER), CAST(numero_lot AS INTEGER)`,
+  ).all(dossierId) as DossierParcelle[];
+}
+
+/** Remplace l'ensemble des lots choisis du dossier par la liste fournie. */
+export function setDossierParcelles(userId: string, dossierId: string, lotIds: string[]): DossierParcelle[] {
+  const t = now();
+  const tx = db.transaction(() => {
+    db.prepare('DELETE FROM dossier_parcelles WHERE dossier_id = ?').run(dossierId);
+    const ins = db.prepare(
+      `INSERT INTO dossier_parcelles (id, dossier_id, parcelle_id, reference, ilot, numero_lot, surface, prix, created_at)
+       VALUES (?,?,?,?,?,?,?,?,?)`,
+    );
+    const seen = new Set<string>();
+    for (const lotId of lotIds) {
+      if (seen.has(lotId)) continue;
+      seen.add(lotId);
+      const p = db.prepare('SELECT id, reference, ilot, numero_lot, surface, prix FROM parcelles WHERE id = ?').get(lotId) as
+        | { id: string; reference: string; ilot: string; numero_lot: string; surface: string; prix: number } | undefined;
+      if (p) ins.run(newId('dpar'), dossierId, p.id, p.reference, p.ilot, p.numero_lot, String(p.surface), p.prix, t);
+    }
+  });
+  tx();
+  const list = getDossierParcelles(dossierId);
+  logActivity({ actorId: userId, actorRole: 'CLIENT', action: 'parcelles_selected', entityType: 'dossier', entityId: dossierId, meta: { count: list.length, refs: list.map(l => l.reference) } });
+  return list;
+}
+
 export function updateProfile(userId: string, patch: Record<string, string>) {
   const allowed = ['first_name', 'last_name', 'phone', 'employer', 'address', 'city'] as const;
   const sets: string[] = [];

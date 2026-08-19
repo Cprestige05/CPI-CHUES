@@ -65,6 +65,10 @@ export const uploadMetaSchema = z.object({
   period: z.string().trim().max(20).optional().default(''),
 });
 
+export const dossierParcellesSchema = z.object({
+  lotIds: z.array(z.string().trim().min(1)).max(50),
+});
+
 export const reviewReasonSchema = z.object({
   reason: z.string().trim().min(3, 'Motif obligatoire.').max(500),
 });

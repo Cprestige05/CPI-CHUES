@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   UserSquare, Banknote, CreditCard, FileText, History, Archive, ArrowRight,
-  CheckCircle2, Clock, AlertTriangle, RefreshCw, Home,
+  CheckCircle2, Clock, AlertTriangle, RefreshCw, Home, Layers, MapPin,
 } from 'lucide-react';
 import { api, errorMessage } from '../data/apiClient';
 import { useNavigate } from '../contexts/NavigationContext';
@@ -27,6 +27,7 @@ function stepOf(s: DossierStatus): number {
 }
 
 interface Doc { typeCode: string; slotIndex: number; status: string; reason?: string; activeVersion: unknown | null }
+interface Parcelle { id: string; reference: string; ilot: string; numero_lot: string; surface: string; prix: number }
 const CATS = [
   { code: 'cni', title: "Pièce d'identité valide", sub: 'CNI ou passeport en cours de validité', icon: UserSquare },
   { code: 'bulletin', title: 'Justificatifs de revenus', sub: '3 derniers bulletins de salaire', icon: Banknote },
@@ -61,6 +62,7 @@ function timeAgo(ts: number) {
 export default function MonDossierSuivi({ user }: { user: SessionUser }) {
   const { navigate } = useNavigate();
   const [docs, setDocs] = useState<Doc[]>([]);
+  const [parcelles, setParcelles] = useState<Parcelle[]>([]);
   const [status, setStatus] = useState<DossierStatus>('BROUILLON');
   const [ref, setRef] = useState('');
   const [history, setHistory] = useState<{ title: string; body: string; created_at: number }[]>([]);
@@ -72,6 +74,7 @@ export default function MonDossierSuivi({ user }: { user: SessionUser }) {
     try {
       const [d, notifs] = await Promise.all([api.get('/dossier'), api.get('/notifications')]);
       setDocs(d.documents ?? []);
+      setParcelles(d.parcelles ?? []);
       setStatus(d.dossier?.status ?? 'BROUILLON');
       const id: string = d.dossier?.id ?? '';
       setRef('CPI-' + (id.replace(/[^0-9a-zA-Z]/g, '').slice(-6).toUpperCase() || '000000'));
@@ -119,7 +122,7 @@ export default function MonDossierSuivi({ user }: { user: SessionUser }) {
           <div>
             <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', color: 'var(--muted-foreground)' }}>PROJET IMMOBILIER</div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-              <span style={{ background: 'var(--muted, #f1f1f1)', borderRadius: 8, padding: '4px 10px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.82rem' }}>Réf. {ref}</span>
+              <span style={{ background: 'var(--muted, #f1f1f1)', borderRadius: 8, padding: '4px 10px', fontFamily: 'monospace', fontWeight: 700, fontSize: '0.82rem' }}>Dossier N° {ref}</span>
               <span style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)' }}>{user.name}</span>
             </div>
           </div>
@@ -136,6 +139,24 @@ export default function MonDossierSuivi({ user }: { user: SessionUser }) {
           <div style={{ height: '100%', width: `${pct}%`, background: pct === 100 ? '#16a34a' : PRIMARY, transition: 'width .3s' }} />
         </div>
       </div>
+
+      {/* Lots choisis */}
+      {parcelles.length > 0 && (
+        <Section icon={<Layers size={18} />} title="Lots choisis" sub={`${parcelles.length} parcelle${parcelles.length > 1 ? 's' : ''} · ${parcelles.reduce((n, p) => n + Number(p.surface || 0), 0).toLocaleString('fr-FR')} m² · ${parcelles.reduce((n, p) => n + (p.prix || 0), 0).toLocaleString('fr-FR')} FCFA`}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10, marginTop: 12 }}>
+            {parcelles.map(p => (
+              <div key={p.id} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <MapPin size={14} style={{ color: PRIMARY }} />
+                  <span style={{ fontWeight: 800, color: 'var(--foreground)' }}>{p.reference}</span>
+                </div>
+                <div style={{ fontSize: '0.76rem', color: 'var(--muted-foreground)', marginTop: 2 }}>Îlot {p.ilot} · Lot {p.numero_lot}</div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--foreground)', marginTop: 8 }}>{p.surface} m² · <strong>{p.prix.toLocaleString('fr-FR')} F</strong></div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
 
       {/* Suivi des pièces */}
       <Section icon={<FileText size={18} />} title="Suivi de vos pièces justificatives" sub={`${validated}/${cats.length} validée${validated > 1 ? 's' : ''} par votre conseiller CPI`}>

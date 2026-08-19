@@ -2,9 +2,10 @@ import { Router } from 'express';
 import { ah } from '../middleware/error.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requireClient, requireApproved } from '../middleware/rbac.js';
-import { profileSchema } from '../validation/schemas.js';
+import { profileSchema, dossierParcellesSchema } from '../validation/schemas.js';
 import {
   ensureDossier, getProfile, updateProfile, listDocuments, completeness, submitDossier, requirements, getAssignedAgent,
+  getDossierParcelles, setDossierParcelles,
 } from '../services/dossier.js';
 
 export const dossierRouter = Router();
@@ -20,7 +21,16 @@ dossierRouter.get('/', ah(async (req, res) => {
     documents: listDocuments(dossier.id),
     completeness: completeness(dossier.id),
     assignedAgent: getAssignedAgent(req.user!.id),
+    parcelles: getDossierParcelles(dossier.id),
   });
+}));
+
+// Enregistre / remplace les lots (parcelles) choisis pour ce dossier.
+dossierRouter.post('/parcelles', ah(async (req, res) => {
+  const dossier = ensureDossier(req.user!.id);
+  const { lotIds } = dossierParcellesSchema.parse(req.body);
+  const parcelles = setDossierParcelles(req.user!.id, dossier.id, lotIds);
+  res.json({ ok: true, parcelles });
 }));
 
 // Met à jour le profil.

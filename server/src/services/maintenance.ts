@@ -11,7 +11,7 @@ import { env } from '../env.js';
 
 /** Tables liées à un utilisateur (doivent toutes retomber à 0 après purge). */
 export const USER_SCOPED_TABLES = [
-  'profiles', 'sessions', 'dossiers', 'documents', 'document_versions',
+  'profiles', 'sessions', 'dossiers', 'documents', 'document_versions', 'dossier_parcelles',
   'admin_reviews', 'notifications', 'email_verification_tokens', 'password_reset_tokens',
 ] as const;
 
