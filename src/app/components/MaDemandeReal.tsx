@@ -100,7 +100,9 @@ export default function MaDemandeReal() {
 
   const filledCount = (code: string) => docs.filter(d => d.typeCode === code && d.activeVersion).length;
   const allDeposited = CATS.every(c => filledCount(c.code) >= c.count);
-  const projectReady = form.montant.trim() !== '' && form.commune.trim() !== '' && form.adresse.trim() !== '';
+  // La localisation vient de la parcelle choisie ; sinon on la saisit manuellement.
+  const hasParcelles = parcelles.length > 0;
+  const projectReady = form.montant.trim() !== '' && (hasParcelles || (form.commune.trim() !== '' && form.adresse.trim() !== ''));
   const canSend = projectReady && allDeposited && (status === 'BROUILLON' || status === 'A_CORRIGER');
   const sent = status !== 'BROUILLON' && status !== 'A_CORRIGER' && status !== 'REJETE';
 
@@ -167,14 +169,20 @@ export default function MaDemandeReal() {
           <Field label="DURÉE SOUHAITÉE"><Select value={form.duree} onChange={set('duree')} options={DUREES} disabled={sent} /></Field>
           <Field label="APPORT PERSONNEL (FCFA)"><Input value={form.apport} onChange={set('apport')} placeholder="0 si aucun" disabled={sent} /></Field>
         </div>
-        <div style={{ background: 'var(--chues-primary-soft, #fbeef0)', borderRadius: 12, padding: 14, marginTop: 14 }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em', color: PRIMARY, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}><MapPin size={13} /> LOCALISATION DU PROJET</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
-            <Field label="RÉGION"><Select value={form.region} onChange={set('region')} options={REGIONS} disabled={sent} /></Field>
-            <Field label="COMMUNE / VILLE *"><Input value={form.commune} onChange={set('commune')} placeholder="Votre commune" disabled={sent} /></Field>
-            <Field label="ADRESSE OU LOCALISATION *"><Input value={form.adresse} onChange={set('adresse')} placeholder="Ex. Lot 47…" disabled={sent} /></Field>
+        {hasParcelles ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, fontSize: '0.82rem', color: 'var(--muted-foreground)' }}>
+            <MapPin size={14} style={{ color: PRIMARY }} /> Localisation définie par la parcelle choisie ({parcelles.map(p => p.reference).join(', ')}).
           </div>
-        </div>
+        ) : (
+          <div style={{ background: 'var(--chues-primary-soft, #fbeef0)', borderRadius: 12, padding: 14, marginTop: 14 }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em', color: PRIMARY, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}><MapPin size={13} /> LOCALISATION DU PROJET</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+              <Field label="RÉGION"><Select value={form.region} onChange={set('region')} options={REGIONS} disabled={sent} /></Field>
+              <Field label="COMMUNE / VILLE *"><Input value={form.commune} onChange={set('commune')} placeholder="Votre commune" disabled={sent} /></Field>
+              <Field label="ADRESSE OU LOCALISATION *"><Input value={form.adresse} onChange={set('adresse')} placeholder="Ex. Lot 47…" disabled={sent} /></Field>
+            </div>
+          </div>
+        )}
         <Field label="DESCRIPTION DU PROJET" style={{ marginTop: 14 }}>
           <textarea value={form.description} onChange={e => set('description')(e.target.value)} disabled={sent} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
         </Field>
@@ -186,7 +194,7 @@ export default function MaDemandeReal() {
         <div>
           <div style={{ fontWeight: 800, color: 'var(--foreground)' }}>{sent ? 'Demande envoyée ✅' : 'Prêt à envoyer votre demande ?'}</div>
           <div style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-            {sent ? 'Votre conseiller étudie votre dossier.' : <><AlertTriangle size={13} /> {!projectReady ? "Renseignez le montant, la commune et l'adresse du projet." : !allDeposited ? `Déposez les ${CATS.reduce((n, c) => n + c.count, 0)} pièces requises ci-dessous.` : 'Tout est prêt — vous pouvez envoyer.'}</>}
+            {sent ? 'Votre conseiller étudie votre dossier.' : <><AlertTriangle size={13} /> {!projectReady ? (hasParcelles ? 'Renseignez le montant demandé.' : "Renseignez le montant, la commune et l'adresse du projet.") : !allDeposited ? `Déposez les ${CATS.reduce((n, c) => n + c.count, 0)} pièces requises ci-dessous.` : 'Tout est prêt — vous pouvez envoyer.'}</>}
           </div>
         </div>
         <button onClick={() => void send()} disabled={!canSend || submitting} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: canSend ? PRIMARY : 'var(--muted, #e5e5e5)', color: canSend ? '#fff' : 'var(--muted-foreground)', border: 'none', borderRadius: 10, padding: '12px 20px', fontWeight: 700, cursor: canSend && !submitting ? 'pointer' : 'default' }}>

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   MapPin, Search, Loader2, CheckCircle2, Clock, XCircle, ChevronRight, ChevronLeft,
-  Maximize2, Wallet, X, Layers, ArrowRight, Check,
+  X, Layers, ArrowRight, Check,
 } from 'lucide-react';
 import { api, errorMessage } from '../data/apiClient';
 
@@ -92,12 +92,12 @@ export default function ParcelleCatalogue({ onConfirm }: { onConfirm: (lots: Lot
         </div>
       </div>
 
-      {/* KPIs */}
+      {/* Récap fin */}
       {totals && (
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', margin: '12px 0 4px' }}>
-          <Kpi label="Lots au catalogue" value={fmtF(totals.lots)} />
-          <Kpi label="Îlots" value={fmtF(totals.ilots)} />
-          <Kpi label="Disponibles" value={fmtF(totals.disponibles)} tone="green" />
+        <div style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)', margin: '10px 0 2px' }}>
+          <strong style={{ color: 'var(--foreground)' }}>{fmtF(totals.lots)}</strong> lots ·{' '}
+          <strong style={{ color: 'var(--foreground)' }}>{fmtF(totals.ilots)}</strong> îlots ·{' '}
+          <strong style={{ color: '#166534' }}>{fmtF(totals.disponibles)}</strong> disponibles
         </div>
       )}
 
@@ -127,33 +127,31 @@ export default function ParcelleCatalogue({ onConfirm }: { onConfirm: (lots: Lot
         {!loading && lots.length === 0 ? (
           <div style={{ padding: 28, textAlign: 'center', color: 'var(--muted-foreground)' }}>Aucun lot ne correspond à ces critères.</div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
             {lots.map(l => {
               const st = STATUT[l.statut];
               const isSel = !!selected[l.id];
               const dispo = l.statut === 'disponible';
               return (
-                <div key={l.id}
-                  style={{ border: `1.5px solid ${isSel ? PRIMARY : 'var(--border)'}`, borderRadius: 12, padding: 12, background: isSel ? 'var(--chues-primary-soft, #fbeef0)' : 'var(--background)', position: 'relative', transition: 'border-color .15s' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                    <div>
-                      <div style={{ fontWeight: 800, color: 'var(--foreground)', fontSize: '0.92rem' }}>{l.reference}</div>
-                      <div style={{ fontSize: '0.74rem', color: 'var(--muted-foreground)' }}>Îlot {l.ilot} · Lot {l.numero_lot}</div>
-                    </div>
+                <div key={l.id} onClick={() => toggle(l)}
+                  style={{ border: `1.5px solid ${isSel ? PRIMARY : 'var(--border)'}`, borderRadius: 12, padding: '12px 14px', background: isSel ? 'var(--chues-primary-soft, #fbeef0)' : 'var(--card)', cursor: dispo ? 'pointer' : 'default', transition: 'border-color .15s' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontWeight: 800, color: 'var(--foreground)', fontSize: '0.92rem' }}>{l.reference}</span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.68rem', fontWeight: 700, borderRadius: 999, padding: '3px 8px', background: st.bg, color: st.fg, whiteSpace: 'nowrap' }}>{st.icon}{st.label}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: '0.8rem', color: 'var(--foreground)' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Maximize2 size={12} style={{ color: 'var(--muted-foreground)' }} /> {l.surface} m²</span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 700 }}><Wallet size={12} style={{ color: 'var(--muted-foreground)' }} /> {fmtF(l.prix)}</span>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--foreground)', marginTop: 6 }}>
+                    {l.surface} m² · <strong>{fmtF(l.prix)} F</strong>
+                    <span style={{ color: 'var(--muted-foreground)' }}> · Îlot {l.ilot}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                    <button onClick={() => setDetail(l)} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, border: '1px solid var(--border)', background: 'transparent', color: 'var(--foreground)', borderRadius: 8, padding: '7px 10px', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+                    <button onClick={e => { e.stopPropagation(); setDetail(l); }} style={{ background: 'transparent', border: 'none', padding: 0, color: PRIMARY, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                       <MapPin size={13} /> Détails
                     </button>
-                    <button onClick={() => toggle(l)} disabled={!dispo}
-                      style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, border: 'none', borderRadius: 8, padding: '7px 10px', fontSize: '0.78rem', fontWeight: 700, cursor: dispo ? 'pointer' : 'not-allowed', background: isSel ? '#166534' : dispo ? PRIMARY : 'var(--muted, #e5e5e5)', color: isSel || dispo ? '#fff' : 'var(--muted-foreground)' }}>
-                      {isSel ? <><Check size={13} /> Choisi</> : dispo ? 'Choisir' : '—'}
-                    </button>
+                    {dispo && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', fontWeight: 700, color: isSel ? '#166534' : 'var(--muted-foreground)' }}>
+                        {isSel ? <><Check size={14} /> Choisie</> : 'Choisir'}
+                      </span>
+                    )}
                   </div>
                 </div>
               );
@@ -233,14 +231,5 @@ function DRow({ label, value, last }: { label: string; value: string; last?: boo
     </div>
   );
 }
-function Kpi({ label, value, tone }: { label: string; value: string; tone?: 'green' }) {
-  return (
-    <div style={{ flex: '1 1 120px', minWidth: 110, background: 'var(--background)', border: '1px solid var(--border)', borderRadius: 12, padding: '10px 14px' }}>
-      <div style={{ fontSize: '1.35rem', fontWeight: 800, color: tone === 'green' ? '#166534' : PRIMARY }}>{value}</div>
-      <div style={{ fontSize: '0.74rem', color: 'var(--muted-foreground)', fontWeight: 600 }}>{label}</div>
-    </div>
-  );
-}
-
 const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--background)', color: 'var(--foreground)', fontSize: '0.86rem', boxSizing: 'border-box', fontFamily: 'var(--font-sans)' };
 const pageBtn = (disabled: boolean): React.CSSProperties => ({ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', border: '1px solid var(--border)', color: disabled ? 'var(--muted-foreground)' : 'var(--foreground)', borderRadius: 9, padding: '7px 13px', fontSize: '0.82rem', fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1 });
