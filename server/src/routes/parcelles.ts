@@ -29,7 +29,7 @@ parcellesRouter.get('/', ah(async (req, res) => {
   const statut = ['disponible', 'reserve', 'vendu'].includes(String(req.query.statut)) ? String(req.query.statut) : '';
   const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
   const page = Math.max(1, parseInt(String(req.query.page ?? '1'), 10) || 1);
-  const perPage = Math.min(100, Math.max(1, parseInt(String(req.query.perPage ?? '50'), 10) || 50));
+  const perPage = Math.min(2500, Math.max(1, parseInt(String(req.query.perPage ?? '50'), 10) || 50));
 
   const clauses: string[] = [];
   const params: unknown[] = [];

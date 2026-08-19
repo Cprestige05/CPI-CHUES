@@ -1,8 +1,5 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
-import {
-  MapPin, Search, Loader2, CheckCircle2, Clock, XCircle, ChevronRight, ChevronLeft,
-  X, Layers, ArrowRight, Check,
-} from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Loader2, Check, Search, ArrowRight, X } from 'lucide-react';
 import { api, errorMessage } from '../data/apiClient';
 
 const PRIMARY = '#5D1615';
@@ -11,59 +8,40 @@ export interface Lot {
   id: string; reference: string; ilot: string; numero_lot: string;
   surface: string; prix: number; statut: 'disponible' | 'reserve' | 'vendu';
 }
-interface IlotSummary { ilot: string; total: number; disponibles: number }
-interface Totals { lots: number; ilots: number; disponibles: number }
 
-const STATUT: Record<Lot['statut'], { label: string; fg: string; bg: string; icon: React.ReactNode }> = {
-  disponible: { label: 'Disponible', fg: '#166534', bg: '#dcfce7', icon: <CheckCircle2 size={12} /> },
-  reserve:    { label: 'Réservé',    fg: '#b45309', bg: '#fef3c7', icon: <Clock size={12} /> },
-  vendu:      { label: 'Vendu',      fg: '#991b1b', bg: '#fee2e2', icon: <XCircle size={12} /> },
+const STATUT: Record<Lot['statut'], { label: string; tile: string; fg: string; dot: string }> = {
+  disponible: { label: 'Disponible', tile: '#dcfce7', fg: '#166534', dot: '#22c55e' },
+  reserve:    { label: 'Réservé',    tile: '#fef3c7', fg: '#b45309', dot: '#f59e0b' },
+  vendu:      { label: 'Vendu',      tile: '#fee2e2', fg: '#991b1b', dot: '#ef4444' },
 };
 const fmtF = (n: number) => n.toLocaleString('fr-FR');
-const PER_PAGE = 24;
+
+interface Active { lot: Lot; num: number; x: number; y: number; yb: number; pinned: boolean }
 
 export default function ParcelleCatalogue({ onConfirm }: { onConfirm: (lots: Lot[]) => void }) {
-  const [totals, setTotals] = useState<Totals | null>(null);
-  const [ilots, setIlots] = useState<IlotSummary[]>([]);
   const [lots, setLots] = useState<Lot[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const [ilot, setIlot] = useState('');
-  const [statut, setStatut] = useState('');
-  const [q, setQ] = useState('');
-  const [qDebounced, setQDebounced] = useState('');
-
   const [selected, setSelected] = useState<Record<string, Lot>>({});
-  const [detail, setDetail] = useState<Lot | null>(null);
+  const [active, setActive] = useState<Active | null>(null);
+  const [statutFilter, setStatutFilter] = useState('');
+  const [query, setQuery] = useState('');
 
-  // Résumé global (une seule fois).
   useEffect(() => {
-    void api.get('/parcelles/ilots')
-      .then(d => { setTotals(d.totals); setIlots(d.ilots ?? []); })
-      .catch(e => setError(errorMessage(e)));
+    (async () => {
+      setLoading(true); setError(null);
+      try {
+        const all = await api.get('/parcelles?perPage=2500&page=1');
+        setLots(all.lots ?? []);
+      } catch (e) { setError(errorMessage(e)); } finally { setLoading(false); }
+    })();
   }, []);
 
-  // Debounce de la recherche.
-  useEffect(() => { const t = setTimeout(() => setQDebounced(q.trim()), 300); return () => clearTimeout(t); }, [q]);
-  useEffect(() => { setPage(1); }, [ilot, statut, qDebounced]);
-
-  const load = useCallback(async () => {
-    setLoading(true); setError(null);
-    try {
-      const params = new URLSearchParams();
-      if (ilot) params.set('ilot', ilot);
-      if (statut) params.set('statut', statut);
-      if (qDebounced) params.set('q', qDebounced);
-      params.set('page', String(page));
-      params.set('perPage', String(PER_PAGE));
-      const d = await api.get(`/parcelles?${params.toString()}`);
-      setLots(d.lots ?? []); setTotal(d.total ?? 0);
-    } catch (e) { setError(errorMessage(e)); } finally { setLoading(false); }
-  }, [ilot, statut, qDebounced, page]);
-  useEffect(() => { void load(); }, [load]);
+  const counts = useMemo(() => {
+    const c = { disponible: 0, reserve: 0, vendu: 0 };
+    for (const l of lots) c[l.statut]++;
+    return c;
+  }, [lots]);
 
   const selectedList = useMemo(() => Object.values(selected), [selected]);
   const selCount = selectedList.length;
@@ -72,102 +50,83 @@ export default function ParcelleCatalogue({ onConfirm }: { onConfirm: (lots: Lot
 
   const toggle = (l: Lot) => {
     if (l.statut !== 'disponible') return;
-    setSelected(s => {
-      const next = { ...s };
-      if (next[l.id]) delete next[l.id]; else next[l.id] = l;
-      return next;
-    });
+    setSelected(s => { const n = { ...s }; if (n[l.id]) delete n[l.id]; else n[l.id] = l; return n; });
   };
 
-  const pages = Math.max(1, Math.ceil(total / PER_PAGE));
+  const q = query.trim().toLowerCase();
+  const matches = (l: Lot, i: number) => {
+    if (statutFilter && l.statut !== statutFilter) return false;
+    if (q) return l.reference.toLowerCase().includes(q) || String(i + 1) === q || l.ilot === q;
+    return true;
+  };
 
   return (
-    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: 18 }}>
+    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: 18 }}
+      onClick={() => setActive(a => (a?.pinned ? null : a))}>
       {/* En-tête */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-        <span style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--muted, #f5f5f5)', color: PRIMARY, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Layers size={18} /></span>
-        <div>
-          <div style={{ fontWeight: 800, color: 'var(--foreground)' }}>Catalogue des parcelles</div>
-          <div style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)' }}>Choisissez un ou plusieurs terrains, puis cliquez sur « Suivant » pour pré-remplir votre demande.</div>
-        </div>
+      <div style={{ fontWeight: 800, color: 'var(--foreground)' }}>Catalogue des parcelles</div>
+      <div style={{ fontSize: '0.78rem', color: 'var(--muted-foreground)' }}>
+        Survolez (ou touchez) un numéro pour voir le lot, puis choisissez un ou plusieurs terrains.
       </div>
 
-      {/* Récap fin */}
-      {totals && (
-        <div style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)', margin: '10px 0 2px' }}>
-          <strong style={{ color: 'var(--foreground)' }}>{fmtF(totals.lots)}</strong> lots ·{' '}
-          <strong style={{ color: 'var(--foreground)' }}>{fmtF(totals.ilots)}</strong> îlots ·{' '}
-          <strong style={{ color: '#166534' }}>{fmtF(totals.disponibles)}</strong> disponibles
-        </div>
-      )}
-
-      {/* Filtres */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginTop: 12 }}>
+      {/* Légende + filtres */}
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', margin: '12px 0' }}>
+        {(['disponible', 'reserve', 'vendu'] as const).map(s => (
+          <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: 'var(--foreground)' }}>
+            <span style={{ width: 12, height: 12, borderRadius: 3, background: STATUT[s].dot }} />
+            {STATUT[s].label} <strong>{fmtF(counts[s])}</strong>
+          </span>
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 12 }}>
         <div style={{ position: 'relative' }}>
           <Search size={15} style={{ position: 'absolute', left: 11, top: 11, color: 'var(--muted-foreground)' }} />
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Rechercher (réf. CPI-001-01…)"
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="N° (1–2500) ou réf. / n° d'îlot"
             style={{ ...inp, paddingLeft: 34 }} />
         </div>
-        <select value={ilot} onChange={e => setIlot(e.target.value)} style={inp}>
-          <option value="">Tous les îlots ({ilots.length})</option>
-          {ilots.map(i => <option key={i.ilot} value={i.ilot}>Îlot {i.ilot} — {i.disponibles}/{i.total} dispo.</option>)}
-        </select>
-        <select value={statut} onChange={e => setStatut(e.target.value)} style={inp}>
+        <select value={statutFilter} onChange={e => setStatutFilter(e.target.value)} style={inp}>
           <option value="">Tous les statuts</option>
-          <option value="disponible">Disponible</option>
-          <option value="reserve">Réservé</option>
-          <option value="vendu">Vendu</option>
+          <option value="disponible">Disponibles</option>
+          <option value="reserve">Réservés</option>
+          <option value="vendu">Vendus</option>
         </select>
       </div>
 
-      {/* Grille de lots */}
-      {error && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: 10, padding: '10px 14px', marginTop: 12 }}>{error}</div>}
-      <div style={{ position: 'relative', marginTop: 12 }}>
-        {loading && <div style={{ position: 'absolute', inset: 0, background: 'var(--card)', opacity: 0.6, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, borderRadius: 12 }}><Loader2 size={22} className="spin" style={{ color: PRIMARY }} /></div>}
-        {!loading && lots.length === 0 ? (
-          <div style={{ padding: 28, textAlign: 'center', color: 'var(--muted-foreground)' }}>Aucun lot ne correspond à ces critères.</div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
-            {lots.map(l => {
+      {/* Grille numérotée 1 → 2500 */}
+      {error && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: 10, padding: '10px 14px' }}>{error}</div>}
+      {loading ? (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 40, color: 'var(--muted-foreground)' }}>
+          <Loader2 size={20} className="spin" style={{ color: PRIMARY }} /> Chargement des 2500 lots…
+        </div>
+      ) : (
+        <div style={{ maxHeight: 440, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 12, padding: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(40px, 1fr))', gap: 5 }}>
+            {lots.map((l, i) => {
               const st = STATUT[l.statut];
               const isSel = !!selected[l.id];
-              const dispo = l.statut === 'disponible';
+              const dim = !matches(l, i);
               return (
-                <div key={l.id} onClick={() => toggle(l)}
-                  style={{ border: `1.5px solid ${isSel ? PRIMARY : 'var(--border)'}`, borderRadius: 12, padding: '12px 14px', background: isSel ? 'var(--chues-primary-soft, #fbeef0)' : 'var(--card)', cursor: dispo ? 'pointer' : 'default', transition: 'border-color .15s' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontWeight: 800, color: 'var(--foreground)', fontSize: '0.92rem' }}>{l.reference}</span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.68rem', fontWeight: 700, borderRadius: 999, padding: '3px 8px', background: st.bg, color: st.fg, whiteSpace: 'nowrap' }}>{st.icon}{st.label}</span>
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--foreground)', marginTop: 6 }}>
-                    {l.surface} m² · <strong>{fmtF(l.prix)} F</strong>
-                    <span style={{ color: 'var(--muted-foreground)' }}> · Îlot {l.ilot}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-                    <button onClick={e => { e.stopPropagation(); setDetail(l); }} style={{ background: 'transparent', border: 'none', padding: 0, color: PRIMARY, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      <MapPin size={13} /> Détails
-                    </button>
-                    {dispo && (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', fontWeight: 700, color: isSel ? '#166534' : 'var(--muted-foreground)' }}>
-                        {isSel ? <><Check size={14} /> Choisie</> : 'Choisir'}
-                      </span>
-                    )}
-                  </div>
-                </div>
+                <button key={l.id} title={`${l.reference} — ${st.label}`}
+                  onMouseEnter={e => { if (active?.pinned) return; const r = e.currentTarget.getBoundingClientRect(); setActive({ lot: l, num: i + 1, x: r.left + r.width / 2, y: r.top, yb: r.bottom, pinned: false }); }}
+                  onMouseLeave={() => setActive(a => (a && !a.pinned && a.lot.id === l.id ? null : a))}
+                  onClick={e => { e.stopPropagation(); const r = e.currentTarget.getBoundingClientRect(); setActive({ lot: l, num: i + 1, x: r.left + r.width / 2, y: r.top, yb: r.bottom, pinned: true }); }}
+                  style={{
+                    aspectRatio: '1', minWidth: 0, borderRadius: 7, cursor: 'pointer', padding: 0,
+                    border: isSel ? `2px solid ${PRIMARY}` : '1px solid rgba(0,0,0,0.06)',
+                    background: isSel ? PRIMARY : st.tile, color: isSel ? '#fff' : st.fg,
+                    fontSize: '0.62rem', fontWeight: 700, opacity: dim ? 0.16 : 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'opacity .15s',
+                  }}>
+                  {isSel ? <Check size={13} /> : i + 1}
+                </button>
               );
             })}
           </div>
-        )}
-      </div>
-
-      {/* Pagination */}
-      {total > PER_PAGE && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 14 }}>
-          <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1} style={pageBtn(page <= 1)}><ChevronLeft size={15} /> Précédent</button>
-          <span style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)', fontWeight: 600 }}>Page {page} / {pages} · {fmtF(total)} lots</span>
-          <button onClick={() => setPage(p => Math.min(pages, p + 1))} disabled={page >= pages} style={pageBtn(page >= pages)}>Suivant <ChevronRight size={15} /></button>
         </div>
       )}
+
+      {/* Info-bulle / popover d'un lot */}
+      {active && <LotPopover a={active} selected={!!selected[active.lot.id]} onToggle={() => toggle(active.lot)} onClose={() => setActive(null)} />}
 
       {/* Barre de sélection */}
       {selCount > 0 && (
@@ -183,53 +142,57 @@ export default function ParcelleCatalogue({ onConfirm }: { onConfirm: (lots: Lot
         </div>
       )}
 
-      {/* Modale détail */}
-      {detail && <DetailModal lot={detail} selected={!!selected[detail.id]} onToggle={() => toggle(detail)} onClose={() => setDetail(null)} />}
-
       <style>{`.spin{animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }
 
-function DetailModal({ lot, selected, onToggle, onClose }: { lot: Lot; selected: boolean; onToggle: () => void; onClose: () => void }) {
+function LotPopover({ a, selected, onToggle, onClose }: { a: Active; selected: boolean; onToggle: () => void; onClose: () => void }) {
+  const { lot, num } = a;
   const st = STATUT[lot.statut];
   const dispo = lot.statut === 'disponible';
   const prixM2 = Number(lot.surface) > 0 ? Math.round(lot.prix / Number(lot.surface)) : 0;
+  const left = Math.min(Math.max(a.x, 140), window.innerWidth - 140);
+  // Bascule sous la tuile si trop près du haut (le popover s'ouvre normalement au-dessus).
+  const below = a.y < 300;
+  const top = below ? a.yb + 10 : a.y - 10;
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 90, padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'var(--card)', borderRadius: 16, padding: 22, width: '100%', maxWidth: 440, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--foreground)' }}>{lot.reference}</div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)' }}>Îlot {lot.ilot} · Lot {lot.numero_lot}</div>
-          </div>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)' }}><X size={20} /></button>
+    <div onClick={e => e.stopPropagation()} style={{
+      position: 'fixed', left, top, transform: below ? 'translate(-50%, 0)' : 'translate(-50%, -100%)', zIndex: 80, width: 250,
+      background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: 14,
+      boxShadow: '0 14px 40px rgba(0,0,0,0.22)',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+        <div>
+          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--muted-foreground)' }}>N° {num}</div>
+          <div style={{ fontWeight: 800, color: 'var(--foreground)', fontSize: '1rem' }}>{lot.reference}</div>
         </div>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', fontWeight: 700, borderRadius: 999, padding: '4px 11px', background: st.bg, color: st.fg, marginTop: 10 }}>{st.icon}{st.label}</span>
-        <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <DRow label="Superficie" value={`${lot.surface} m²`} />
-          <DRow label="Prix total" value={`${fmtF(lot.prix)} FCFA`} />
-          <DRow label="Prix au m²" value={`${fmtF(prixM2)} FCFA / m²`} />
-          <DRow label="Îlot" value={`N° ${lot.ilot}`} />
-          <DRow label="Numéro de lot" value={lot.numero_lot} last />
-        </div>
-        {!dispo && <div style={{ marginTop: 14, fontSize: '0.82rem', color: st.fg, background: st.bg, borderRadius: 9, padding: '9px 12px' }}>Ce lot n'est pas disponible à la réservation ({st.label.toLowerCase()}).</div>}
-        <button onClick={() => { onToggle(); onClose(); }} disabled={!dispo}
-          style={{ width: '100%', marginTop: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, border: 'none', borderRadius: 10, padding: '12px', fontWeight: 800, cursor: dispo ? 'pointer' : 'not-allowed', background: selected ? '#166534' : dispo ? PRIMARY : 'var(--muted, #e5e5e5)', color: dispo || selected ? '#fff' : 'var(--muted-foreground)' }}>
-          {selected ? <><Check size={16} /> Retirer de la sélection</> : dispo ? <>Choisir ce lot</> : 'Indisponible'}
-        </button>
+        {a.pinned && <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 0 }}><X size={16} /></button>}
       </div>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', fontWeight: 700, borderRadius: 999, padding: '3px 9px', background: st.tile, color: st.fg, marginTop: 8 }}>
+        <span style={{ width: 8, height: 8, borderRadius: 999, background: st.dot }} /> {st.label}
+      </span>
+      <div style={{ marginTop: 10, fontSize: '0.82rem', color: 'var(--foreground)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <Line k="Îlot / Lot" v={`Îlot ${lot.ilot} · Lot ${lot.numero_lot}`} />
+        <Line k="Superficie" v={`${lot.surface} m²`} />
+        <Line k="Prix total" v={`${fmtF(lot.prix)} FCFA`} />
+        <Line k="Prix au m²" v={`${fmtF(prixM2)} FCFA`} />
+      </div>
+      <button onClick={() => { onToggle(); }} disabled={!dispo}
+        style={{ width: '100%', marginTop: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: 'none', borderRadius: 9, padding: '9px', fontWeight: 800, fontSize: '0.82rem', cursor: dispo ? 'pointer' : 'not-allowed', background: selected ? '#166534' : dispo ? PRIMARY : 'var(--muted, #e5e5e5)', color: dispo || selected ? '#fff' : 'var(--muted-foreground)' }}>
+        {selected ? <><Check size={14} /> Choisie — retirer</> : dispo ? 'Choisir ce lot' : 'Indisponible'}
+      </button>
     </div>
   );
 }
 
-function DRow({ label, value, last }: { label: string; value: string; last?: boolean }) {
+function Line({ k, v }: { k: string; v: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: last ? 'none' : '1px solid var(--border)' }}>
-      <span style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)' }}>{label}</span>
-      <span style={{ fontWeight: 700, color: 'var(--foreground)', fontSize: '0.9rem' }}>{value}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+      <span style={{ color: 'var(--muted-foreground)' }}>{k}</span>
+      <span style={{ fontWeight: 700 }}>{v}</span>
     </div>
   );
 }
+
 const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--background)', color: 'var(--foreground)', fontSize: '0.86rem', boxSizing: 'border-box', fontFamily: 'var(--font-sans)' };
-const pageBtn = (disabled: boolean): React.CSSProperties => ({ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'transparent', border: '1px solid var(--border)', color: disabled ? 'var(--muted-foreground)' : 'var(--foreground)', borderRadius: 9, padding: '7px 13px', fontSize: '0.82rem', fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1 });
