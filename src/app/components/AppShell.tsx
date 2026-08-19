@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Building2, LayoutDashboard, FileText, Bell, UserCircle,
   LogOut, ChevronRight, Menu, X, Users,
@@ -10,6 +10,7 @@ import type { UserRole } from '../App';
 import type { SessionUser } from '../data/authContext';
 import { ClientProvider } from '../contexts/ClientContext';
 import { NavigationProvider, useNavigate } from '../contexts/NavigationContext';
+import { api } from '../data/apiClient';
 import { loadClients } from '../data/clientRegistry';
 import { DocStateProvider } from '../data/docStateContext';
 import { CpiDocsProvider } from '../data/cpiDocsContext';
@@ -400,9 +401,30 @@ function SupportPage() {
 
 // ─── Inner shell — reads navigation from context ───────────────────────────────
 
+// Badge rouge (alerte) pour les notifications non lues, dans le menu latéral.
+const notifBadge: React.CSSProperties = {
+  marginLeft: 'auto', minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999,
+  background: '#dc2626', color: '#fff', fontSize: '0.68rem', fontWeight: 800,
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+  animation: 'notifPulse 1.6s infinite',
+};
+
 function AppShellInner({ user, onLogout }: AppShellProps) {
   const { activeNav, navigate } = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
+
+  // Compteur de notifications non lues (rafraîchi périodiquement + à chaque navigation).
+  useEffect(() => {
+    let alive = true;
+    const fetchUnread = async () => {
+      try { const d = await api.get('/notifications'); if (alive) setUnread(d.unread ?? 0); }
+      catch { /* session non prête / hors-ligne : on ignore */ }
+    };
+    void fetchUnread();
+    const t = setInterval(fetchUnread, 25000);
+    return () => { alive = false; clearInterval(t); };
+  }, [activeNav]);
 
   const navItems = getNavItems(user.role);
   const roleLabel = ROLE_LABELS[user.role];
@@ -449,6 +471,7 @@ function AppShellInner({ user, onLogout }: AppShellProps) {
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--background)', fontFamily: 'var(--font-sans)' }}>
+      <style>{`@keyframes notifPulse{0%{box-shadow:0 0 0 0 rgba(220,38,38,0.55)}70%{box-shadow:0 0 0 7px rgba(220,38,38,0)}100%{box-shadow:0 0 0 0 rgba(220,38,38,0)}}`}</style>
       {/* Desktop sidebar */}
       <div className="hidden lg:flex flex-col w-64 flex-shrink-0">
         <div className="flex flex-col h-full overflow-hidden" style={{ background: 'var(--sidebar)' }}>
@@ -487,7 +510,9 @@ function AppShellInner({ user, onLogout }: AppShellProps) {
                   >
                     <Icon className="w-4 h-4 flex-shrink-0" />
                     <span>{item.label}</span>
-                    {active && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
+                    {item.id.startsWith('notifications') && unread > 0
+                      ? <span style={notifBadge}>{unread > 9 ? '9+' : unread}</span>
+                      : active ? <ChevronRight className="w-3.5 h-3.5 ml-auto" /> : null}
                   </button>
                 );
               })}
@@ -543,7 +568,11 @@ function AppShellInner({ user, onLogout }: AppShellProps) {
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--muted-foreground)'; (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
             >
               <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#C8921A] rounded-full" />
+              {unread > 0 && (
+                <span style={{ position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 999, background: '#dc2626', color: '#fff', fontSize: '0.62rem', fontWeight: 800, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', animation: 'notifPulse 1.6s infinite' }}>
+                  {unread > 9 ? '9+' : unread}
+                </span>
+              )}
             </button>
             <div
               onClick={() => navigate('mon-profil')}
@@ -599,6 +628,7 @@ function AppShellInner({ user, onLogout }: AppShellProps) {
                     >
                       <Icon className="w-4 h-4 flex-shrink-0" />
                       <span>{item.label}</span>
+                      {item.id.startsWith('notifications') && unread > 0 && <span style={notifBadge}>{unread > 9 ? '9+' : unread}</span>}
                     </button>
                   );
                 })}
