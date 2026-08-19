@@ -14,8 +14,9 @@ const DUREES = ['5 ans', '10 ans', '15 ans', '20 ans', '25 ans'];
 interface Doc { id: string; typeCode: string; slotIndex: number; status: string; reason?: string; activeVersion: { id: string } | null }
 const CATS = [
   { code: 'cni', title: "Pièce d'identité valide", sub: 'CNI ou passeport en cours de validité', count: 1 },
-  { code: 'bulletin', title: 'Justificatifs de revenus', sub: 'Les 3 derniers bulletins de salaire', count: 3 },
+  { code: 'bulletin', title: 'Justificatifs de revenus', sub: 'Les 3 derniers bulletins de salaire (un par un)', count: 3 },
   { code: 'releve', title: 'Relevés bancaires', sub: 'Les 3 derniers mois de relevés de compte', count: 3 },
+  { code: 'domicile', title: 'Justificatif de domicile', sub: 'Facture SENELEC/SDE ou quittance de loyer récente', count: 1 },
 ];
 
 export default function MaDemandeReal() {
@@ -185,7 +186,7 @@ export default function MaDemandeReal() {
         <div>
           <div style={{ fontWeight: 800, color: 'var(--foreground)' }}>{sent ? 'Demande envoyée ✅' : 'Prêt à envoyer votre demande ?'}</div>
           <div style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)', display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-            {sent ? 'Votre conseiller étudie votre dossier.' : <><AlertTriangle size={13} /> {!projectReady ? "Renseignez le montant, la commune et l'adresse du projet." : !allDeposited ? 'Déposez les 7 pièces requises ci-dessous.' : 'Tout est prêt — vous pouvez envoyer.'}</>}
+            {sent ? 'Votre conseiller étudie votre dossier.' : <><AlertTriangle size={13} /> {!projectReady ? "Renseignez le montant, la commune et l'adresse du projet." : !allDeposited ? `Déposez les ${CATS.reduce((n, c) => n + c.count, 0)} pièces requises ci-dessous.` : 'Tout est prêt — vous pouvez envoyer.'}</>}
           </div>
         </div>
         <button onClick={() => void send()} disabled={!canSend || submitting} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: canSend ? PRIMARY : 'var(--muted, #e5e5e5)', color: canSend ? '#fff' : 'var(--muted-foreground)', border: 'none', borderRadius: 10, padding: '12px 20px', fontWeight: 700, cursor: canSend && !submitting ? 'pointer' : 'default' }}>

@@ -60,7 +60,7 @@ export const profileSchema = z.object({
 });
 
 export const uploadMetaSchema = z.object({
-  typeCode: z.enum(['cni', 'bulletin', 'releve']),
+  typeCode: z.enum(['cni', 'bulletin', 'releve', 'domicile']),
   slotIndex: z.coerce.number().int().min(0).max(9),
   period: z.string().trim().max(20).optional().default(''),
 });

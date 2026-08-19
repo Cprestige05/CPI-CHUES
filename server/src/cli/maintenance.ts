@@ -30,7 +30,7 @@ function printReport(): boolean {
   const integrityOk = integrity.length === 1 && integrity[0] === 'ok';
   const fkOk = fkViolations.length === 0;
   const emptyUserData = counts.users === 0 && USER_SCOPED_TABLES.every(t => counts[t] === 0) && files.length === 0;
-  const configOk = counts.document_types === 3 && counts._migrations >= 1;
+  const configOk = counts.document_types === 4 && counts._migrations >= 1;
 
   console.log('── Verdicts ────────────────────────────────────');
   console.log('integrity_check = ok        :', integrityOk);

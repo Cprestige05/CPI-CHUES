@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   UserSquare, Banknote, CreditCard, FileText, History, Archive, ArrowRight,
-  CheckCircle2, Clock, AlertTriangle, RefreshCw,
+  CheckCircle2, Clock, AlertTriangle, RefreshCw, Home,
 } from 'lucide-react';
 import { api, errorMessage } from '../data/apiClient';
 import { useNavigate } from '../contexts/NavigationContext';
@@ -31,6 +31,7 @@ const CATS = [
   { code: 'cni', title: "Pièce d'identité valide", sub: 'CNI ou passeport en cours de validité', icon: UserSquare },
   { code: 'bulletin', title: 'Justificatifs de revenus', sub: '3 derniers bulletins de salaire', icon: Banknote },
   { code: 'releve', title: 'Relevés bancaires', sub: '3 derniers relevés de compte', icon: CreditCard },
+  { code: 'domicile', title: 'Justificatif de domicile', sub: 'Facture SENELEC/SDE ou quittance de loyer', icon: Home },
 ];
 
 function catStatus(docs: Doc[]): { label: string; tone: 'todo' | 'pending' | 'ok' | 'warn' } {
