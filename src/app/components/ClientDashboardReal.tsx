@@ -2,7 +2,11 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   FolderOpen, FileText, ClipboardList, CreditCard, LifeBuoy, ArrowUpRight,
   CheckCircle2, Clock, AlertTriangle, Inbox, UserPlus, Bell, Send, ChevronRight,
+  PieChart as PieIcon, Layers, Ruler, Wallet,
 } from 'lucide-react';
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend,
+} from 'recharts';
 import { api, errorMessage } from '../data/apiClient';
 import { useNavigate } from '../contexts/NavigationContext';
 import type { SessionUser } from '../data/authContext';
@@ -28,15 +32,40 @@ function stepOf(status: DossierStatus): number {
 }
 
 interface Doc { typeCode: string; slotIndex: number; status: string; activeVersion: unknown | null }
+interface Parcelle { id: string; reference: string; ilot: string; numero_lot: string; surface: string; prix: number }
+interface CatStat { label: string; requises: number; déposées: number; validées: number }
 interface Data {
   status: DossierStatus;
   ref: string;
-  filled: number; required: number;
+  filled: number; required: number; validated: number;
   categoriesValidated: number; categoriesTotal: number;
   unread: number;
   agent: { firstName: string; lastName: string } | null;
   activities: { title: string; body: string; created_at: number }[];
+  perCat: CatStat[];
+  statusDist: { name: string; value: number }[];
+  parcelles: Parcelle[];
 }
+
+// Catégories de pièces (miroir du backend).
+const DOC_CATS = [
+  { code: 'cni', label: 'Identité', required: 1 },
+  { code: 'bulletin', label: 'Revenus', required: 3 },
+  { code: 'releve', label: 'Relevés', required: 3 },
+  { code: 'domicile', label: 'Domicile', required: 1 },
+];
+const STATUS_ORDER = ['Validé', 'En vérification', 'Déposé', 'À corriger', 'Manquant'] as const;
+const STATUS_COLORS: Record<string, string> = {
+  'Validé': '#16a34a', 'En vérification': '#C8921A', 'Déposé': '#1e4d8c', 'À corriger': '#dc2626', 'Manquant': '#cbd5e1',
+};
+function bucket(s: string): string {
+  if (s === 'VALIDE') return 'Validé';
+  if (s === 'SOUMIS' || s === 'EN_VERIFICATION') return 'En vérification';
+  if (s === 'BROUILLON') return 'Déposé';
+  if (s === 'A_CORRIGER' || s === 'REJETE') return 'À corriger';
+  return 'Manquant';
+}
+const fmtF = (n: number) => n.toLocaleString('fr-FR');
 
 function timeAgo(ts: number): string {
   const s = Math.floor((Date.now() - ts) / 1000);
@@ -57,22 +86,36 @@ export default function ClientDashboardReal({ user }: { user: SessionUser }) {
     try {
       const [d, notifs] = await Promise.all([api.get('/dossier'), api.get('/notifications')]);
       const docs: Doc[] = d.documents ?? [];
-      // 3 catégories : CNI, bulletins (revenus), relevés bancaires.
-      const cats = ['cni', 'bulletin', 'releve'];
-      const categoriesValidated = cats.filter(c => {
-        const inCat = docs.filter(x => x.typeCode === c);
+      const categoriesValidated = DOC_CATS.filter(c => {
+        const inCat = docs.filter(x => x.typeCode === c.code);
         return inCat.length > 0 && inCat.every(x => x.status === 'VALIDE');
       }).length;
+      // Avancement par catégorie (requises / déposées / validées).
+      const perCat: CatStat[] = DOC_CATS.map(c => {
+        const inCat = docs.filter(x => x.typeCode === c.code);
+        return {
+          label: c.label,
+          requises: c.required,
+          déposées: inCat.filter(x => x.activeVersion !== null).length,
+          validées: inCat.filter(x => x.status === 'VALIDE').length,
+        };
+      });
+      // Répartition de toutes les pièces par statut (pour le donut).
+      const distMap: Record<string, number> = { 'Validé': 0, 'En vérification': 0, 'Déposé': 0, 'À corriger': 0, 'Manquant': 0 };
+      docs.forEach(x => { distMap[bucket(x.status)]++; });
+      const statusDist = STATUS_ORDER.map(name => ({ name, value: distMap[name] }));
       const id: string = d.dossier?.id ?? '';
       setData({
         status: d.dossier?.status ?? 'BROUILLON',
         ref: 'CPI-' + (id.replace(/[^0-9a-zA-Z]/g, '').slice(-6).toUpperCase() || '000000'),
         filled: d.completeness?.filled ?? 0,
-        required: d.completeness?.required ?? 7,
-        categoriesValidated, categoriesTotal: cats.length,
+        required: d.completeness?.required ?? 8,
+        validated: d.completeness?.validated ?? 0,
+        categoriesValidated, categoriesTotal: DOC_CATS.length,
         unread: notifs.unread ?? 0,
         agent: d.assignedAgent ? { firstName: d.assignedAgent.firstName, lastName: d.assignedAgent.lastName } : null,
         activities: (notifs.notifications ?? []).slice(0, 5),
+        perCat, statusDist, parcelles: d.parcelles ?? [],
       });
     } catch (e) { setError(errorMessage(e)); } finally { setLoading(false); }
   }, []);
@@ -89,6 +132,9 @@ export default function ClientDashboardReal({ user }: { user: SessionUser }) {
   const pct = Math.round((data.filled / data.required) * 100);
   const submitted = data.status !== 'BROUILLON' && data.status !== 'A_CORRIGER' && data.status !== 'REJETE';
   const stepBadge = data.status === 'BROUILLON' ? 'À déposer' : data.status === 'SOUMIS' ? 'Reçu' : data.status === 'EN_VERIFICATION' ? 'En vérification' : data.status === 'VALIDE' ? 'Validé' : 'À corriger';
+  const totalSurface = data.parcelles.reduce((n, p) => n + Number(p.surface || 0), 0);
+  const totalPrix = data.parcelles.reduce((n, p) => n + (p.prix || 0), 0);
+  const donutData = data.statusDist.filter(s => s.value > 0);
 
   return (
     <div style={{ maxWidth: 1080, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -146,6 +192,85 @@ export default function ClientDashboardReal({ user }: { user: SessionUser }) {
         <Kpi icon={<CheckCircle2 size={18} />} tint="#dcfce7" tintFg="#166534" big={`${data.categoriesValidated} / ${data.categoriesTotal}`} label="Pièces validées" sub={submitted ? 'Vérifiées par le conseiller' : 'À déposer'} />
         <Kpi icon={<Inbox size={18} />} tint="#e0e7ff" tintFg="#3730a3" big={STEPS[Math.min(step + 1, 5)].label} label="Prochaine étape" sub="Suivi par votre conseiller" />
         <Kpi icon={<AlertTriangle size={18} />} tint="#f1f5f9" tintFg="#475569" big={data.status === 'A_CORRIGER' ? 'À corriger' : 'Aucune alerte'} label="Alertes" sub="Statut en temps réel" />
+      </div>
+
+      {/* ── Statistiques : métriques + graphiques ── */}
+      <div>
+        <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--foreground)', margin: '4px 0 2px' }}>Statistiques de mon dossier</h2>
+        <p style={{ fontSize: '0.82rem', color: 'var(--muted-foreground)', marginBottom: 12 }}>Vue chiffrée de vos pièces et de vos lots.</p>
+
+        {/* Métriques */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 14 }}>
+          <Metric icon={<FileText size={16} />} value={`${data.filled}/${data.required}`} label="Pièces déposées" color={PRIMARY} />
+          <Metric icon={<CheckCircle2 size={16} />} value={`${data.validated}`} label="Pièces validées" color="#16a34a" />
+          <Metric icon={<Layers size={16} />} value={`${data.parcelles.length}`} label="Lots choisis" color={GOLD} />
+          <Metric icon={<Ruler size={16} />} value={`${fmtF(totalSurface)} m²`} label="Superficie totale" color="#1e4d8c" />
+          <Metric icon={<Wallet size={16} />} value={`${fmtF(totalPrix)}`} label="Montant lots (FCFA)" color="#7a1e2a" />
+        </div>
+
+        {/* Graphiques pièces */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
+          <Card title="Répartition des pièces" sub={`${data.filled} déposée${data.filled > 1 ? 's' : ''} · ${data.validated} validée${data.validated > 1 ? 's' : ''}`} icon={<PieIcon size={18} />}>
+            {donutData.length === 0 ? (
+              <Empty text="Aucune pièce déposée pour l'instant." />
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ width: 200, height: 200, flexShrink: 0 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={donutData} dataKey="value" nameKey="name" innerRadius={52} outerRadius={82} paddingAngle={2} stroke="none">
+                        {donutData.map(s => <Cell key={s.name} fill={STATUS_COLORS[s.name]} />)}
+                      </Pie>
+                      <Tooltip formatter={(v: number, n: string) => [`${v} pièce${v > 1 ? 's' : ''}`, n]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 120 }}>
+                  {data.statusDist.map(s => (
+                    <span key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: 'var(--foreground)' }}>
+                      <span style={{ width: 11, height: 11, borderRadius: 3, background: STATUS_COLORS[s.name], flexShrink: 0 }} />
+                      {s.name} <strong style={{ marginLeft: 'auto' }}>{s.value}</strong>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Card>
+
+          <Card title="Avancement par catégorie" sub="Requises · déposées · validées" icon={<ClipboardList size={18} />}>
+            <div style={{ width: '100%', height: 220 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data.perCat} margin={{ top: 8, right: 8, left: -18, bottom: 0 }} barGap={2}>
+                  <XAxis dataKey="label" tick={{ fontSize: 12 }} tickLine={false} axisLine={{ stroke: 'var(--border)' }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                  <Tooltip cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="requises" fill="#cbd5e1" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="déposées" fill="#1e4d8c" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="validées" fill="#16a34a" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </div>
+
+        {/* Montant par lot choisi */}
+        {data.parcelles.length > 0 && (
+          <div style={{ marginTop: 14 }}>
+            <Card title="Mes lots choisis" sub={`${data.parcelles.length} parcelle${data.parcelles.length > 1 ? 's' : ''} · ${fmtF(totalSurface)} m² · ${fmtF(totalPrix)} FCFA`} icon={<Layers size={18} />}>
+              <div style={{ width: '100%', height: 220 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.parcelles.map(p => ({ name: p.reference, surface: Number(p.surface), prix: p.prix }))} margin={{ top: 8, right: 8, left: 6, bottom: 0 }}>
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} tickLine={false} axisLine={{ stroke: 'var(--border)' }} interval={0} angle={-12} textAnchor="end" height={44} />
+                    <YAxis tick={{ fontSize: 12 }} tickLine={false} axisLine={false} tickFormatter={(v: number) => `${Math.round(v / 1e6)}M`} />
+                    <Tooltip formatter={(v: number) => [`${fmtF(v)} FCFA`, 'Prix']} />
+                    <Bar dataKey="prix" fill={PRIMARY} radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </div>
+        )}
       </div>
 
       {/* ── Actions rapides + Activités ── */}
@@ -252,6 +377,20 @@ function Kpi({ icon, tint, tintFg, big, label, sub }: { icon: React.ReactNode; t
       <div style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', marginTop: 2 }}>{sub}</div>
     </div>
   );
+}
+
+function Metric({ icon, value, label, color }: { icon: React.ReactNode; value: string; label: string; color: string }) {
+  return (
+    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: '14px 16px' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.03em', color }}>{icon}</span>
+      <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--foreground)', marginTop: 6, lineHeight: 1.15 }}>{value}</div>
+      <div style={{ fontSize: '0.74rem', color: 'var(--muted-foreground)', fontWeight: 600, marginTop: 2 }}>{label}</div>
+    </div>
+  );
+}
+
+function Empty({ text }: { text: string }) {
+  return <div style={{ textAlign: 'center', padding: '36px 10px', color: 'var(--muted-foreground)', fontSize: '0.85rem' }}>{text}</div>;
 }
 
 function Card({ title, sub, icon, children }: { title: string; sub: string; icon: React.ReactNode; children: React.ReactNode }) {
